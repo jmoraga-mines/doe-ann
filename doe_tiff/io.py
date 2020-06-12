@@ -9,20 +9,21 @@ import numpy as np
 from osgeo import gdal_array
 
 
-def frame_image( image, frame_size = None ):
+def frame_image(image, frame_size=None):
     if frame_size is None: return image
-    assert( frame_size > 0 )
-    i_c = image.shape[0]
-    i_x = image.shape[1]
-    i_y = image.shape[2]
-    frame_c = i_c
-    frame_x = i_x + 2*frame_size
-    frame_y = i_y + 2*frame_size
-    framed_img = np.zeros((frame_c, frame_x, frame_y))
-    framed_img[:, frame_size:frame_size+i_x, frame_size:frame_size+i_y] = image
+    assert(frame_size > 0)
+    i_columns = image.shape[0]
+    i_rows = image.shape[1]
+    i_channels = image.shape[2]
+    frame_channels = i_channels
+    frame_rows = i_rows + 2*frame_size
+    frame_columns = i_columns + 2*frame_size
+    framed_img = np.zeros((frame_columns, frame_rows, frame_channels))
+    framed_img[frame_size:frame_size+i_columns, frame_size:frame_size+i_rows, :] = image
     return framed_img
 
-def read_gdal_file( image_name ):
+
+def read_gdal_file(image_name):
     '''read_gdal_file
     string image_name: name of an image file in GeoTiff format
 
@@ -39,7 +40,7 @@ def read_gdal_file( image_name ):
     # no_data = my_image.GetNoDataValue()
     # my_image = np.ma.masked_equal(my_image, no_data) # masks unavailable data from GeoTiff
     my_image = np.ma.masked_invalid(my_image)          # masks unavailable data from GeoTiff
-    my_image = np.transpose(my_image, axes=(2,1,0))    # changes array to fit (width, height, channels)
+    my_image = np.transpose(my_image, axes=(2, 1, 0))    # changes array to fit (width, height, channels)
     return my_image
 
 
@@ -53,7 +54,7 @@ def preprocess_sentinel_image(sentinel_image):
         returns: a numpy array with 3 dimensions (width, height, channels)
     '''
     my_image = np.array(sentinel_image).astype(np.float32)
-    my_image[my_image>10000] = 10000.0
+    my_image[my_image > 10000] = 10000.0
     my_image = my_image/10000.0
     return my_image
 
