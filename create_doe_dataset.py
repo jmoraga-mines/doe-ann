@@ -54,7 +54,10 @@ if __name__ == '__main__':
     # By Jim: to reduce the size of the input tiff
     # img_b_scaled = img_b[:,1200:-500,2700:]
     img_b_scaled = img_b[:, :, 1:]
-    mask_b = img_b[:, :, 0]
+    mask_b = img_b[:, :, 0] # first band is Ground Truth
+    for i in range(0, img_b_scaled.shape[2]):
+        print("band (",i,") min:", img_b_scaled[:,:,i].min())
+        print("band (",i,") max:", img_b_scaled[:,:,i].max())
 
     # print('# Items with class 1: ', len(mask_b))
     # print('original image:')
