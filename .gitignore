@@ -1,3 +1,7 @@
 rasters
 samples
 sb_samples
+*.model
+*.labels
+*.npy
+*.pyc

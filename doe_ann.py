@@ -23,12 +23,15 @@ from keras.models import Model
 from keras.models import load_model
 from keras.optimizers import Adam
 from keras.regularizers import l2
+from keras.utils import to_categorical
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import argmax
 import os
 import os.path as path
+import sys
 import pickle
 import random
 import skimage
@@ -44,7 +47,8 @@ DEFAULT_MODEL_FILE_NAME = 'doe_cnn.model'
 DEFAULT_LABEL_FILE_NAME = 'doe_cnn.labels.pickle'
 
 CHANNELS = 5            # This will be redefined based on parameters
-INIT_LR = 1e-3          # Default Loss Rate
+INIT_LR = 1e-2          # Default Loss Rate
+INIT_DECAY = 1e-1       # Default Decay
 KERNEL_PIXELS = 17      # Default pixels by side on each tile
 NUM_CLASSES = 2         # Default number of classes ("Geothermal", "Non-Geothermal")
 BS = 32
@@ -137,21 +141,21 @@ class DataGenerator(keras.utils.Sequence):
 
 
 def inception_m( input_net, first_layer = None ):
-    conv1 = Conv2D(128, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(input_net)
-    inception_t1_1x1 = Conv2D(256, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(conv1)
-    inception_t1_3x3_reduce = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(conv1)
-    inception_t1_3x3 = Conv2D(128, (3,3), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(inception_t1_3x3_reduce)
-    inception_t1_5x5_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(conv1)
-    inception_t1_5x5 = Conv2D(32, (5,5), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(inception_t1_5x5_reduce)
-    inception_t1_7x7_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(conv1)
-    inception_t1_7x7 = Conv2D(32, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(inception_t1_7x7_reduce)
+    conv1 = Conv2D(128, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
+    inception_t1_1x1 = Conv2D(256, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_3x3_reduce = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_3x3 = Conv2D(128, (3,3), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_3x3_reduce)
+    inception_t1_5x5_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_5x5 = Conv2D(32, (5,5), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_5x5_reduce)
+    inception_t1_7x7_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_7x7 = Conv2D(32, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_7x7_reduce)
     inception_t1_pool = MaxPooling2D(pool_size=(3,3), strides = (1,1), padding='same')(conv1)
-    inception_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(inception_t1_pool)
+    inception_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_pool)
     if first_layer is None:
         inception_t1_output = Concatenate(axis = -1)([inception_t1_1x1, inception_t1_3x3, inception_t1_5x5,
                                                       inception_t1_7x7, inception_t1_pool_proj])
     else:
-        inception_t1_first = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.0002))(first_layer)
+        inception_t1_first = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(first_layer)
         inception_t1_output = Concatenate(axis = -1)([inception_t1_first, inception_t1_1x1, inception_t1_3x3,
                                                       inception_t1_5x5, inception_t1_7x7, inception_t1_pool_proj])
     return inception_t1_output
@@ -159,18 +163,18 @@ def inception_m( input_net, first_layer = None ):
 def inception_m_end( input_net, num_classes = NUM_CLASSES, first_layer = None ):
     avg_pooling = AveragePooling2D(pool_size=(3,3), strides=(1,1), name='avg_pooling')(input_net)
     flat = Flatten()(avg_pooling)
-    flat = Dense(16, kernel_regularizer=l2(0.0002))(flat)
+    flat = Dense(16, kernel_regularizer=l2(0.002))(flat)
     flat = Dropout(0.4)(flat)
     if first_layer is not None:
         input_pixel = Flatten()(first_layer)
-        input_pixel = Dense(16, kernel_regularizer=l2(0.0002))(input_pixel)
+        input_pixel = Dense(16, kernel_regularizer=l2(0.002))(input_pixel)
         input_pixel = Dropout(0.2)(input_pixel)
-        input_pixel = Dense(16, kernel_regularizer=l2(0.0002))(input_pixel)
+        input_pixel = Dense(16, kernel_regularizer=l2(0.002))(input_pixel)
         input_pixel = Dropout(0.2)(input_pixel)
         flat = Concatenate(axis = -1)([input_pixel, flat])
-    flat = Dense(32, kernel_regularizer=l2(0.0002))(flat)
+    flat = Dense(32, kernel_regularizer=l2(0.002))(flat)
     avg_pooling = Dropout(0.4)(flat)
-    loss3_classifier = Dense(num_classes, kernel_regularizer=l2(0.0002))(avg_pooling)
+    loss3_classifier = Dense(num_classes, kernel_regularizer=l2(0.002))(avg_pooling)
     loss3_classifier_act = Activation('softmax', name='prob')(loss3_classifier)
     return loss3_classifier_act
 
@@ -224,11 +228,13 @@ def ROC_curve_calc( testY, pre_y2, class_num, output_file_header ):
 
 
 
+print('Set-up complete.')
 
 ''' Main program '''
 
-if __name__ == 'main':
+if __name__ == '__main__':
     ''' Main instructions '''
+    print('Parsing input...')
     ap = argparse.ArgumentParser()
     ap.add_argument("-a", "--augment", required=False,
                     help="Augment images by flippipng horizontally, vertically and diagonally",
@@ -287,9 +293,12 @@ if __name__ == 'main':
         print("[INFO] Don't reset model")
         # Ensures model file exists and is really a file
         if model_file is not None:
-            assert path.exists(model_file), 'weights file {} does not exist'.format(model_file)
-            assert path.isfile(model_file), 'weights path {} is not a file'.format(model_file)
-            model_exist = True
+            try:
+                assert path.exists(model_file), 'weights file {} does not exist'.format(model_file)
+                assert path.isfile(model_file), 'weights path {} is not a file'.format(model_file)
+                model_exist = True
+            except:
+                model_exist = False
         else:
             model_file = DEFAULT_MODEL_FILE_NAME
             model_exist = False
@@ -306,28 +315,6 @@ if __name__ == 'main':
     # initialize the data and labels
     data = []
     labels = []
-    '''
-    Creates the network
-    '''
-    if (reset_model or not model_exist):
-        print('[INFO] Building model from scratch...')
-        my_input = Input( shape=IMAGE_DIMS, batch_shape=BATCH_DIMS )
-
-        # One inception modules
-        inception_01 = inception_m( my_input )
-        # Attaches end to inception modules, returns class within num_classes
-        loss3_classifier_act = inception_m_end( inception_01, num_classes = num_classes, first_layer = my_input )
-
-        # Builds model
-        model3 = Model( inputs = my_input, outputs = [loss3_classifier_act] )
-        model3.summary()
-    else:
-        # Builds model
-        print('[INFO] Loading model from file...')
-        model3 = load_model( model_file )
-        model3.summary()
-    if (not reset_model and (weights_exist and not model_exist)):
-        model3.load_weights(weights_file)
     ## grab the image paths and randomly shuffle them
     print("[INFO] loading images...")
     imagePaths = sorted(list(paths.list_files(dataset_path)))
@@ -350,20 +337,59 @@ if __name__ == 'main':
         labels.append(label)
 
     print('Read images:', len(data))
+    # print('Read labels:', (labels))
     # scale the raw pixel intensities to the range [0, 1]
     data = np.array(data, dtype=np.float)
+    data = np.nan_to_num(data)
     labels = np.array(labels)
     print("[INFO] data matrix: {:.2f}MB".format(
         data.nbytes / (1024 * 1024.0)))
 
     # binarize the labels
     lb = LabelBinarizer()
-    labels = lb.fit_transform(labels)
+    labels_lb = lb.fit_transform(labels)
+
+    y_binary = to_categorical(labels, num_classes=num_classes)
+    y_inverse = argmax(y_binary, axis = 1)
+    print('Read labels:', (lb.classes_))
+    print('Transformed labels:', (y_binary[:10]))
+    print('Inverted labels:', (y_inverse[:10]))
+    print('Any nulls?: ', np.isnan(data).any())
+    # sys.exit(0)  # exit after tests
+
+    '''
+    Creates the network
+    '''
+    if (reset_model or not model_exist):
+        print('[INFO] Building model from scratch...')
+        my_input = Input( shape=IMAGE_DIMS, batch_shape=BATCH_DIMS )
+
+        # One inception modules
+        inception_01 = inception_m( my_input )
+        # Attaches end to inception modules, returns class within num_classes
+        loss3_classifier_act = inception_m_end( inception_01,
+                num_classes = num_classes, first_layer = my_input ) # testing num_classes
+#                num_classes = len(lb.classes_), first_layer = my_input ) # testing num_classes
+#                num_classes = num_classes, first_layer = my_input )
+
+        # Builds model
+        model3 = Model( inputs = my_input, outputs = [loss3_classifier_act] )
+        model3.summary()
+    else:
+        # Builds model
+        print('[INFO] Loading model from file...')
+        model3 = load_model( model_file )
+        model3.summary()
+    if (not reset_model and (weights_exist and not model_exist)):
+        model3.load_weights(weights_file)
 
     # partition the data into training and testing splits using 50% of
     # the data for training and the remaining 50% for testing
     (trainX, testX, trainY, testY) = train_test_split(data,
-        labels, test_size=0.5, random_state=42)
+        y_binary, test_size=0.8, random_state=42)
+#        labels, test_size=0.5, random_state=42)
+    (validateX, testX, validateY, testY) = train_test_split(testX, testY,
+            test_size=0.6, random_state=42)
     params = {'dim':(kernel_pixels,kernel_pixels), 'batch_size': batch_size,
             'n_classes': num_classes,
             'n_channels': image_channels,
@@ -386,7 +412,7 @@ if __name__ == 'main':
         print("[INFO] Training...")
         print("[INFO] Reset model:", reset_model)
         print("[INFO] Validate-only model:", validate_only)
-        opt=Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS)
+        opt=Adam(lr=INIT_LR, decay=INIT_DECAY)   # Old decay was: INIT_LR / EPOCHS)
         model3.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")
@@ -401,11 +427,11 @@ if __name__ == 'main':
         # Train the model
         H = model3.fit_generator(
             generator = my_batch_gen,
-            validation_data=(testX, testY),
+            validation_data=(validateX, validateY),
             steps_per_epoch=len(trainX) // batch_size,
             # callbacks=[early_stop, auto_save],
             callbacks=[auto_save],
-            epochs=EPOCHS, verbose=1)
+            epochs=num_epochs, verbose=1)
         # save the model to disk
         print("[INFO] serializing network...")
         model3.save( model_file )
@@ -414,12 +440,17 @@ if __name__ == 'main':
         f = open(label_file, "wb")
         f.write(pickle.dumps(lb))
         f.close()
-    testY = lb.inverse_transform( testY ).astype(np.int64)
+
+    # testY = lb.inverse_transform( testY ).astype(np.int64)
+    testY = argmax(testY, axis=1)
     print('[INFO] Predicting ...')
     pre_y2 = model3.predict(testX, verbose = 1)
+    print("pred set:", pre_y2[:10])
     pre_y2_prob = pre_y2
-    pre_y2 = pre_y2.argmax(axis=-1)+1
+    pre_y2 = pre_y2.argmax(axis=-1)
     acc2 = accuracy_score(testY, pre_y2)
+    print("test set:", testY[:10])
+    print("pred set:", pre_y2[:10])
     print('Accuracy on test set: {0:.3f}'.format(acc2))
     print("Confusion Matrix:")
     print(confusion_matrix(testY, pre_y2))
@@ -433,10 +464,11 @@ if __name__ == 'main':
         # plot the training loss and accuracy
         plt.style.use("ggplot")
         plt.figure()
-        N = EPOCHS
+        N = num_epochs
         plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
         plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-        plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
+        #plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
+        plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
         plt.plot(np.arange(0, N), H.history["val_acc"], label="val_acc")
         plt.title("Training Loss and Accuracy")
         plt.xlabel("Epoch #")
