@@ -24,6 +24,7 @@ import argparse
 # Default values
 SAMPLES_TO_CREATE = 1200
 KERNEL_PIXELS = 17
+KERNEL_CHANNELS = 5
 DEFAULT_DIRECTORY = 'dataset'
 
 
@@ -31,6 +32,9 @@ def parse_arguments():
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--image", required=True,
                     help="path to input multi-band image (i.e., image file name)")
+    ap.add_argument("-c", "--channels", required=False,
+                    help="number of channels/bands to extract",
+                    type=int, default=KERNEL_CHANNELS)
     ap.add_argument("-d", "--directory", required=False,
                     help="path to directory where samples will be written to",
                     default=DEFAULT_DIRECTORY)
@@ -46,14 +50,18 @@ def parse_arguments():
 if __name__ == '__main__':
     args = parse_arguments()
     image_name = args["image"]
+    num_channels = args["channels"]
     output_directory = args["directory"]
     num_samples = args["samples"]
     kernel_size = args["kernel_size"]
     PADDING = int(kernel_size/2)
     img_b = dt.io.read_gdal_file(image_name)
+    max_channels = img_b.shape[2]
     # By Jim: to reduce the size of the input tiff
     # img_b_scaled = img_b[:,1200:-500,2700:]
-    img_b_scaled = img_b[:, :, 1:]
+    assert num_channels>0, 'Channels has to be a positive integer'
+    assert num_channels<=max_channels, 'Channels has to be equal or lower than {}'.format(max_channels)
+    img_b_scaled = img_b[:, :, 1:num_channels+1]
     mask_b = img_b[:, :, 0] # first band is Ground Truth
     for i in range(0, img_b_scaled.shape[2]):
         print("band (",i,") min:", img_b_scaled[:,:,i].min())

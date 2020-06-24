@@ -21,7 +21,7 @@ from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.core import Activation, Flatten, Dropout, Dense
 from keras.models import Model
 from keras.models import load_model
-from keras.optimizers import Adam
+from keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from keras.regularizers import l2
 from keras.utils import to_categorical
 
@@ -414,15 +414,17 @@ if __name__ == '__main__':
         print("[INFO] Training...")
         print("[INFO] Reset model:", reset_model)
         print("[INFO] Validate-only model:", validate_only)
-        opt=Adam(lr=INIT_LR, decay=INIT_DECAY)   # Old decay was: INIT_LR / EPOCHS)
+        # opt=Adam(lr=INIT_LR, decay=INIT_DECAY)   # Old decay was: INIT_LR / EPOCHS)
+        # opt = Adam(lr=INIT_LR, beta_1=INIT_DECAY, amsgrad=True)
+        opt = Adadelta(learning_rate=INIT_LR)
         model3.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")
-        auto_save = ModelCheckpoint(model_file, monitor = 'val_acc', verbose = 0,
+        auto_save = ModelCheckpoint(model_file, monitor = 'val_accuracy', verbose = 0,
                                     save_best_only = True, save_weights_only=False,
                                     mode='auto', period=10)
         # can use validation set loss or accuracy to stop early
-        # early_stop = EarlyStopping( monitor = 'val_acc', mode='max', baseline=0.97)
+        # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
         early_stop = EarlyStopping( monitor = 'val_loss', mode='min', verbose=1, patience=50 )
         # train the network
         print("[INFO] training network...")
@@ -469,9 +471,10 @@ if __name__ == '__main__':
         N = num_epochs
         plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
         plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-        #plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
-        plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
-        plt.plot(np.arange(0, N), H.history["val_acc"], label="val_acc")
+        #plt.plot(np.arange(0, N), H.history["accuracy"], label="train_accuracy")
+        plt.plot(np.arange(0, N), H.history["accuracy"], label="train_accuracy")
+        plt.plot(np.arange(0, N), H.history["val_accuracy"],
+                label="val_accuracy")
         plt.title("Training Loss and Accuracy")
         plt.xlabel("Epoch #")
         plt.ylabel("Loss/Accuracy")

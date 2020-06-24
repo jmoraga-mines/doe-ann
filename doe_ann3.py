@@ -21,7 +21,7 @@ from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.core import Activation, Flatten, Dropout, Dense
 from keras.models import Model
 from keras.models import load_model
-from keras.optimizers import Adam
+from keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from keras.regularizers import l2
 from keras.utils import to_categorical
 
@@ -49,7 +49,7 @@ DEFAULT_LABEL_FILE_NAME = 'doe_cnn.labels.pickle'
 CHANNELS = 5            # This will be redefined based on parameters
 INIT_LR = 5e-1          # Default Loss Rate
 # INIT_LR = 1e-2          # Default Loss Rate
-INIT_DECAY = 1e-1       # Default Decay
+INIT_DECAY = 1e-3       # Default Decay
 # INIT_DECAY = 1e-1       # Default Decay
 KERNEL_PIXELS = 17      # Default pixels by side on each tile
 NUM_CLASSES = 2         # Default number of classes ("Geothermal", "Non-Geothermal")
@@ -151,15 +151,17 @@ def inception_m( input_net, first_layer = None ):
     inception_t1_5x5 = Conv2D(32, (5,5), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_5x5_reduce)
     inception_t1_7x7_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
     inception_t1_7x7 = Conv2D(32, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_7x7_reduce)
+    inception_t1_9x9_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_9x9 = Conv2D(32, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_9x9_reduce)
     inception_t1_pool = MaxPooling2D(pool_size=(3,3), strides = (1,1), padding='same')(conv1)
     inception_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_pool)
     if first_layer is None:
         inception_t1_output = Concatenate(axis = -1)([inception_t1_1x1, inception_t1_3x3, inception_t1_5x5,
-                                                      inception_t1_7x7, inception_t1_pool_proj])
+                                                      inception_t1_7x7, inception_t1_9x9, inception_t1_pool_proj])
     else:
         inception_t1_first = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(first_layer)
         inception_t1_output = Concatenate(axis = -1)([inception_t1_first, inception_t1_1x1, inception_t1_3x3,
-                                                      inception_t1_5x5, inception_t1_7x7, inception_t1_pool_proj])
+                                                      inception_t1_5x5, inception_t1_7x7, inception_t1_9x9, inception_t1_pool_proj])
     return inception_t1_output
 
 def inception_m_end( input_net, num_classes = NUM_CLASSES, first_layer = None ):
@@ -414,15 +416,17 @@ if __name__ == '__main__':
         print("[INFO] Training...")
         print("[INFO] Reset model:", reset_model)
         print("[INFO] Validate-only model:", validate_only)
-        opt=Adam(lr=INIT_LR, decay=INIT_DECAY)   # Old decay was: INIT_LR / EPOCHS)
+        # opt=Adam(lr=INIT_LR, decay=INIT_DECAY)   # Old decay was: INIT_LR / EPOCHS)
+        # opt = Adam(lr=INIT_LR, beta_1=INIT_DECAY, amsgrad=True)
+        opt = Adadelta(learning_rate=INIT_LR)
         model3.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")
-        auto_save = ModelCheckpoint(model_file, monitor = 'val_acc', verbose = 0,
+        auto_save = ModelCheckpoint(model_file, monitor = 'val_accuracy', verbose = 0,
                                     save_best_only = True, save_weights_only=False,
                                     mode='auto', period=10)
         # can use validation set loss or accuracy to stop early
-        # early_stop = EarlyStopping( monitor = 'val_acc', mode='max', baseline=0.97)
+        # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
         early_stop = EarlyStopping( monitor = 'val_loss', mode='min', verbose=1, patience=50 )
         # train the network
         print("[INFO] training network...")
@@ -469,9 +473,10 @@ if __name__ == '__main__':
         N = num_epochs
         plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
         plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-        #plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
+        #plt.plot(np.arange(0, N), H.history["accuracy"], label="train_accuracy")
         plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
-        plt.plot(np.arange(0, N), H.history["val_acc"], label="val_acc")
+        plt.plot(np.arange(0, N), H.history["val_accuracy"],
+                label="val_accuracy")
         plt.title("Training Loss and Accuracy")
         plt.xlabel("Epoch #")
         plt.ylabel("Loss/Accuracy")

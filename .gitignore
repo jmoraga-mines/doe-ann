@@ -5,3 +5,5 @@ sb_samples
 *.labels
 *.npy
 *.pyc
+simple_test.py
+*.png
