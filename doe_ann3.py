@@ -424,14 +424,15 @@ if __name__ == '__main__':
         print("[INFO] define early stop and auto save for network...")
         auto_save = ModelCheckpoint(model_file, monitor = 'val_accuracy', verbose = 0,
                                     save_best_only = True, save_weights_only=False,
-                                    mode='auto', period=10)
+                                    mode='auto', save_freq=10)
         # can use validation set loss or accuracy to stop early
         # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
         early_stop = EarlyStopping( monitor = 'val_loss', mode='min', verbose=1, patience=50 )
         # train the network
         print("[INFO] training network...")
         # Train the model
-        H = model3.fit_generator(
+        # H = model3.fit_generator(
+        H = model3.fit(
             generator = my_batch_gen,
             validation_data=(validateX, validateY),
             steps_per_epoch=len(trainX) // batch_size,

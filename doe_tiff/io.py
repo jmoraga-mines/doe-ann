@@ -6,8 +6,10 @@ Created on 2020-06-03
 """
 
 import numpy as np
-from osgeo import gdal_array
-
+try:
+    from osgeo import gdal_array
+except:
+    import gdal
 
 def frame_image(image, frame_size=None):
     if frame_size is None: return image
