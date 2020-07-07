@@ -9,3 +9,4 @@ sb_samples
 *.pyc
 simple_test.py
 *.png
+*_samples_*/

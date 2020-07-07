@@ -163,17 +163,23 @@ def inception_m( input_net, first_layer = None ):
     inception_t1_13x13 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_13x13")(inception_t1_13x13_reduce)
     inception_t1_15x15_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
     inception_t1_15x15 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_15x15")(inception_t1_15x15_reduce)
+    inception_t1_17x17_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_17x17 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_17x17")(inception_t1_17x17_reduce)
+    inception_t1_19x19_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_19x19 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_19x19")(inception_t1_19x19_reduce)
     inception_t1_pool = MaxPooling2D(pool_size=(3,3), strides = (1,1), padding='same')(conv1)
     inception_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_pool)
     if first_layer is None:
         inception_t1_output = Concatenate(axis = -1)([inception_t1_1x1, inception_t1_3x3, inception_t1_5x5,
                                                       inception_t1_7x7, inception_t1_9x9, inception_t1_11x11, 
-                                                      inception_t1_13x13, inception_t1_15x15, inception_t1_pool_proj])
+                                                      inception_t1_13x13, inception_t1_15x15, 
+                                                      inception_t1_17x17, inception_t1_19x19, inception_t1_pool_proj])
     else:
         inception_t1_first = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(first_layer)
         inception_t1_output = Concatenate(axis = -1)([inception_t1_first, inception_t1_1x1, inception_t1_3x3,
                                                       inception_t1_5x5, inception_t1_7x7, inception_t1_9x9, inception_t1_11x11, 
-                                                      inception_t1_13x13, inception_t1_15x15, inception_t1_pool_proj])
+                                                      inception_t1_13x13, inception_t1_15x15, 
+                                                      inception_t1_17x17, inception_t1_19x19, inception_t1_pool_proj])
     return inception_t1_output
 
 def inception_m_end( input_net, num_classes = NUM_CLASSES, first_layer = None ):
