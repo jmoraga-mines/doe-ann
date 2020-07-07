@@ -125,6 +125,10 @@ class DataGenerator(keras.utils.Sequence):
         # Initialization
         X = np.empty((self.batch_size, *self.dim, self.n_channels))
         y = np.empty((self.batch_size, self.n_classes), dtype=int)
+#        if (self.augment_data):
+#            print('Generating augmented data...')
+#        else:
+#            print('Generating data...')
         # Generate data
         for i, ID in enumerate(list_IDs_temp):
             # Store sample
@@ -146,22 +150,30 @@ def inception_m( input_net, first_layer = None ):
     conv1 = Conv2D(128, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
     inception_t1_1x1 = Conv2D(256, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
     inception_t1_3x3_reduce = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    inception_t1_3x3 = Conv2D(128, (3,3), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_3x3_reduce)
+    inception_t1_3x3 = Conv2D(128, (3,3), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_3x3")(inception_t1_3x3_reduce)
     inception_t1_5x5_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    inception_t1_5x5 = Conv2D(32, (5,5), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_5x5_reduce)
+    inception_t1_5x5 = Conv2D(128, (5,5), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_5x5")(inception_t1_5x5_reduce)
     inception_t1_7x7_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    inception_t1_7x7 = Conv2D(32, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_7x7_reduce)
+    inception_t1_7x7 = Conv2D(128, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_7x7")(inception_t1_7x7_reduce)
     inception_t1_9x9_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    inception_t1_9x9 = Conv2D(32, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_9x9_reduce)
+    inception_t1_9x9 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_9x9")(inception_t1_9x9_reduce)
+    inception_t1_11x11_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_11x11 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_11x11")(inception_t1_11x11_reduce)
+    inception_t1_13x13_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_13x13 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_13x13")(inception_t1_13x13_reduce)
+    inception_t1_15x15_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_15x15 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_15x15")(inception_t1_15x15_reduce)
     inception_t1_pool = MaxPooling2D(pool_size=(3,3), strides = (1,1), padding='same')(conv1)
     inception_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_pool)
     if first_layer is None:
         inception_t1_output = Concatenate(axis = -1)([inception_t1_1x1, inception_t1_3x3, inception_t1_5x5,
-                                                      inception_t1_7x7, inception_t1_9x9, inception_t1_pool_proj])
+                                                      inception_t1_7x7, inception_t1_9x9, inception_t1_11x11, 
+                                                      inception_t1_13x13, inception_t1_15x15, inception_t1_pool_proj])
     else:
         inception_t1_first = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(first_layer)
         inception_t1_output = Concatenate(axis = -1)([inception_t1_first, inception_t1_1x1, inception_t1_3x3,
-                                                      inception_t1_5x5, inception_t1_7x7, inception_t1_9x9, inception_t1_pool_proj])
+                                                      inception_t1_5x5, inception_t1_7x7, inception_t1_9x9, inception_t1_11x11, 
+                                                      inception_t1_13x13, inception_t1_15x15, inception_t1_pool_proj])
     return inception_t1_output
 
 def inception_m_end( input_net, num_classes = NUM_CLASSES, first_layer = None ):
@@ -366,7 +378,8 @@ if __name__ == '__main__':
     '''
     if (reset_model or not model_exist):
         print('[INFO] Building model from scratch...')
-        my_input = Input( shape=IMAGE_DIMS, batch_shape=BATCH_DIMS )
+        # my_input = Input( shape=IMAGE_DIMS, batch_shape=BATCH_DIMS )
+        my_input = Input( shape=IMAGE_DIMS )
 
         # One inception modules
         inception_01 = inception_m( my_input )
@@ -384,9 +397,11 @@ if __name__ == '__main__':
         print('[INFO] Loading model from file...')
         model3 = load_model( model_file )
         model3.summary()
+    '''
     if (not reset_model and (weights_exist and not model_exist)):
         model3.load_weights(weights_file)
 
+    '''
     # partition the data into training and testing splits using 50% of
     # the data for training and the remaining 50% for testing
     (trainX, testX, trainY, testY) = train_test_split(data,
@@ -424,13 +439,21 @@ if __name__ == '__main__':
         print("[INFO] define early stop and auto save for network...")
         auto_save = ModelCheckpoint(model_file, monitor = 'val_accuracy', verbose = 0,
                                     save_best_only = True, save_weights_only=False,
-                                    mode='auto', period=10)
+                                    mode='auto')
         # can use validation set loss or accuracy to stop early
         # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
         early_stop = EarlyStopping( monitor = 'val_loss', mode='min', verbose=1, patience=50 )
         # train the network
         print("[INFO] training network...")
         # Train the model
+        H = model3.fit(
+            my_batch_gen,
+            validation_data=(validateX, validateY),
+            steps_per_epoch=len(trainX) // batch_size,
+            # callbacks=[early_stop, auto_save],
+            callbacks=[auto_save],
+            epochs=num_epochs, verbose=1)
+        '''
         H = model3.fit_generator(
             generator = my_batch_gen,
             validation_data=(validateX, validateY),
@@ -438,6 +461,7 @@ if __name__ == '__main__':
             # callbacks=[early_stop, auto_save],
             callbacks=[auto_save],
             epochs=num_epochs, verbose=1)
+        '''
         # save the model to disk
         print("[INFO] serializing network...")
         model3.save( model_file )

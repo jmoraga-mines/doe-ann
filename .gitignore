@@ -2,7 +2,9 @@ rasters
 samples
 sb_samples
 *.model
+*.h5
 *.labels
+*.l
 *.npy
 *.pyc
 simple_test.py
