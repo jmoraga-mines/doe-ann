@@ -39,6 +39,10 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.metrics import roc_curve, auc
+import doe_tiff as dt
+from osgeo import gdal
+from osgeo.gdalconst import *
+
 
 
 matplotlib.use("Agg")
@@ -163,17 +167,23 @@ def inception_m( input_net, first_layer = None ):
     inception_t1_13x13 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_13x13")(inception_t1_13x13_reduce)
     inception_t1_15x15_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
     inception_t1_15x15 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_15x15")(inception_t1_15x15_reduce)
+    inception_t1_17x17_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_17x17 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_17x17")(inception_t1_17x17_reduce)
+    inception_t1_19x19_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    inception_t1_19x19 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_19x19")(inception_t1_19x19_reduce)
     inception_t1_pool = MaxPooling2D(pool_size=(3,3), strides = (1,1), padding='same')(conv1)
     inception_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(inception_t1_pool)
     if first_layer is None:
         inception_t1_output = Concatenate(axis = -1)([inception_t1_1x1, inception_t1_3x3, inception_t1_5x5,
                                                       inception_t1_7x7, inception_t1_9x9, inception_t1_11x11, 
-                                                      inception_t1_13x13, inception_t1_15x15, inception_t1_pool_proj])
+                                                      inception_t1_13x13, inception_t1_15x15, 
+                                                      inception_t1_17x17, inception_t1_19x19, inception_t1_pool_proj])
     else:
         inception_t1_first = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(first_layer)
         inception_t1_output = Concatenate(axis = -1)([inception_t1_first, inception_t1_1x1, inception_t1_3x3,
                                                       inception_t1_5x5, inception_t1_7x7, inception_t1_9x9, inception_t1_11x11, 
-                                                      inception_t1_13x13, inception_t1_15x15, inception_t1_pool_proj])
+                                                      inception_t1_13x13, inception_t1_15x15, 
+                                                      inception_t1_17x17, inception_t1_19x19, inception_t1_pool_proj])
     return inception_t1_output
 
 def inception_m_end( input_net, num_classes = NUM_CLASSES, first_layer = None ):
@@ -252,18 +262,15 @@ if __name__ == '__main__':
     ''' Main instructions '''
     print('Parsing input...')
     ap = argparse.ArgumentParser()
-    ap.add_argument("-a", "--augment", required=False,
-                    help="Augment images by flippipng horizontally, vertically and diagonally",
-                    dest='augment', action = 'store_true', default = False)
     ap.add_argument("-b", "--batch_size", required=False,
                     help="Defines batch size", default = BS, type=int)
     ap.add_argument("-c", "--channels", required=False, help='Number of channels in each image',
                     default=CHANNELS, type=int)
-    ap.add_argument("-d", "--dataset", required=True,
-                    help="path to input dataset (i.e., directory of images)")
     ap.add_argument("-e", "--epochs", required=False, type=int,
                     help="Number of epochs to train)", default=EPOCHS)
-    ap.add_argument("-k", "--kernel_pixels", required=False,
+    ap.add_argument("-i", "--image", required=True,
+                    help="path to input multi-band image (i.e., image file name)")
+    ap.add_argument("-k", "--kernel_size", required=False,
                     help='Number of pixels by side in each image',
                     default=KERNEL_PIXELS, type=int)
     ap.add_argument("-l", "--labelbin", required=True, help="path to output label binarizer")
@@ -272,238 +279,116 @@ if __name__ == '__main__':
                     default=NUM_CLASSES, type=int)
     ap.add_argument("-p", "--plot", type=str, default="plot.png",
                     help="path to output accuracy/loss plot")
-    ap.add_argument("-r", "--reset", required=False,
-                    help="Don't load setup files, train from scratch",
-                    dest='reset', action = 'store_true', default = False)
     ap.add_argument("-o", "--output_curves", required=False, help="Starting file name for ROC curves",
                     default = None)
-    ap.add_argument("-t", "--true_random", required=False,
-                    help="Ensure true random shuffling of training and test sets",
-                    dest='true_random', action = 'store_true', default = False)
-    ap.add_argument("-v", "--validate", required=False,
-                    help="Don't train, only validate with random images from dataset",
-                    dest='validate', action = 'store_true', default = False)
-    ap.add_argument("-w", "--weights", required=False, help="path to input or output model weights",
-                    default = None)
     args = vars(ap.parse_args())
-    augment_data = args["augment"]
     batch_size = args["batch_size"]
-    image_channels = args["channels"]
-    dataset_path = args["dataset"]
+    num_channels = args["channels"]
     num_epochs = args["epochs"]
-    kernel_pixels = args["kernel_pixels"]
+    image_name = args["image"]
+    kernel_size = args["kernel_size"]
     label_file = args["labelbin"]
     model_file = args["model"]
     num_classes = args["num_classes"]
     plot_file = args["plot"]
-    reset_model = args["reset"]
-    true_random = args["true_random"]
-    validate_only = args["validate"]
-    weights_file = args["weights"]
     output_curves_file = args["output_curves"]
-    if reset_model:
-        print("[INFO] Reset model")
+    # Ensures model file exists and is really a file
+    PADDING = int(kernel_size/2)
+    try:
+        assert path.exists(model_file), 'Model path {} does not exist'.format(model_file)
+        assert path.isfile(model_file), 'Model file {} is not a file'.format(model_file)
+        model_exist = True
+    except:
         model_exist = False
-        weights_exist = False
-    else:
-        print("[INFO] Don't reset model")
-        # Ensures model file exists and is really a file
-        if model_file is not None:
-            try:
-                assert path.exists(model_file), 'weights file {} does not exist'.format(model_file)
-                assert path.isfile(model_file), 'weights path {} is not a file'.format(model_file)
-                model_exist = True
-            except:
-                model_exist = False
-        else:
-            model_file = DEFAULT_MODEL_FILE_NAME
-            model_exist = False
-        # Ensures weights file exists and is really a file
-        if weights_file is not None:
-            assert path.exists(weights_file), 'weights file {} does not exist'.format(weights_file)
-            assert path.isfile(weights_file), 'weights path {} is not a file'.format(weights_file)
-            weights_exist = True
-        else:
-            weights_file = DEFAULT_WEIGHTS_FILE_NAME
-            weights_exist = False
-    IMAGE_DIMS = (kernel_pixels, kernel_pixels, image_channels)
-    BATCH_DIMS = (None, kernel_pixels, kernel_pixels, image_channels)
-    # initialize the data and labels
-    data = []
-    labels = []
-    ## grab the image paths and randomly shuffle them
-    print("[INFO] loading images...")
-    imagePaths = sorted(list(paths.list_files(dataset_path)))
-    print('Number of images:', len(imagePaths))
-    # Ensure 'random' numbers are not too random to compare networks
-    if (not true_random):
-        random.seed(42)
-    random.shuffle(imagePaths)
-    # leave just a subset of all images
-    # imagePaths = imagePaths[:1400]
-    ## loop over the input images
-    img_count = 0
-    for imagePath in imagePaths:
-        # Reads image file from dataset
-        image = np.load(imagePath)
-        # Our Model uses (width, height, depth )
-        data.append(image)
-        # Gets label from subdirectory name and stores it
-        label = imagePath.split(os.path.sep)[-2]
-        labels.append(label)
+        raise FileNotFoundError
+    try:
+        assert path.isfile(image_name), 'Image file {}: is not a file'.format(model_file)
+        img_b = dt.io.read_gdal_file(image_name)
+        max_channels = img_b.shape[2]
+    except:
+        print("Image file not found or erroneous")
+        raise FileNotFoundError
+    weights_exist = False
 
-    print('Read images:', len(data))
-    # print('Read labels:', (labels))
-    # scale the raw pixel intensities to the range [0, 1]
-    data = np.asarray(data, dtype=np.float)
-    data = np.nan_to_num(data)
-    labels = np.array(labels)
-    print("[INFO] data matrix: {:.2f}MB".format(
-        data.nbytes / (1024 * 1024.0)))
+    # Get rid of NaN's
+    img_b = np.array(img_b, dtype=np.float)
+    img_b = np.nan_to_num(img_b)
+    # By Jim: to reduce the size of the input tiff
+    print("Image shape:", img_b.shape)
+    # img_b = img_b[200:500,1000:,:]
+    print("Resized image shape:", img_b.shape)
+    assert num_channels>0, 'Channels has to be a positive integer'
+    assert num_channels<=max_channels, 'Channels has to be equal or lower than {}'.format(max_channels)
+    img_b_scaled = img_b[:, :, 1:num_channels+1]
+    print("DLM input image shape:", img_b_scaled.shape)
+    mask_b = img_b[:, :, 0] # first band is Ground Truth
+    (img_x, img_y) = mask_b.shape
+    print("Mask shape:", mask_b.shape)
+    new_map = np.zeros_like(mask_b) # creates empty map
+    print("Map shape:", new_map.shape)
+    for i in range(0, img_b_scaled.shape[2]):
+        print("band (",i,") min:", img_b_scaled[:,:,i].min())
+        print("band (",i,") max:", img_b_scaled[:,:,i].max())
+    img_b_scaled = dt.frame_image(img_b_scaled, PADDING)
+    sc = dt.GeoTiffConvolution(img_b_scaled, kernel_size, kernel_size)
 
-    # binarize the labels
-    lb = LabelBinarizer()
-    labels_lb = lb.fit_transform(labels)
+    IMAGE_DIMS = (kernel_size, kernel_size, num_channels)
+    BATCH_DIMS = (None, kernel_size, kernel_size, num_channels)
+    # Builds model
+    print('[INFO] Loading model from file...')
+    model3 = load_model( model_file )
+    # model3.summary()
+    print('[INFO] Creating prediction map...')
+    for i in range(img_x):
+        # initialize the data and labels
+        data = []
+        labels = []
+        ## loop over the input images
+        img_count = 0
+        for j in range(img_y):
+            image = sc.apply_mask(i+PADDING, j+PADDING)
+            data.append(image)
+            # label = mask_b[i, j]
+            # labels.append(label)
+        data = np.array(data, dtype=np.float)
+        data = np.nan_to_num(data)
+        # print("Cropped image shape:", image.shape)
+        # print("first image shape:", data[0].shape)
+        # print("number of images:", len(data))
+        pre_y = model3.predict( data, verbose = 0 )
+        pre_y = pre_y.argmax(axis=-1)
+        new_map[i,:] = pre_y
+    new_map = np.asarray(new_map)
+    file_name = "prediction_map.npy"
+    print('saving file:', file_name)
+    f = open(file_name, 'wb')
+    np.save(f, new_map)
+    inDs = gdal.Open(image_file)
+    band1 = inDs.GetRasterBand(1)
+    rows = inDs.RasterYSize
+    cols = inDs.RasterXSize
+    cropData = band1.ReadAsArray(0,0,cols,rows)
+    driver = inDs.GetDriver()
+    outDs = driver.Create("prediction_raster.gri", cols, rows, 1, GDT_Int32)
+    outBand = outDs.GetRasterBand(1)
+    outData = new_map.T
+    outBand.WriteArray(outData, 0, 0)
+    outBand.FlushCache()
+    outBand.SetNoDataValue(-99)
+    outDs.SetGeoTransform(inDs.GetGeoTransform())
+    outDs.SetProjection(inDs.GetProjection())
+    del outData
+    print("saving file: prediction_raster.gri")
 
-    y_binary = to_categorical(labels, num_classes=num_classes)
-    y_inverse = argmax(y_binary, axis = 1)
-    print('Read labels:', (lb.classes_))
-    print('Transformed labels:', (y_binary[:10]))
-    print('Inverted labels:', (y_inverse[:10]))
-    print('Any nulls?: ', np.isnan(data).any())
-    # sys.exit(0)  # exit after tests
 
-    '''
-    Creates the network
-    '''
-    if (reset_model or not model_exist):
-        print('[INFO] Building model from scratch...')
-        # my_input = Input( shape=IMAGE_DIMS, batch_shape=BATCH_DIMS )
-        my_input = Input( shape=IMAGE_DIMS )
-
-        # One inception modules
-        inception_01 = inception_m( my_input )
-        # Attaches end to inception modules, returns class within num_classes
-        loss3_classifier_act = inception_m_end( inception_01,
-                num_classes = num_classes, first_layer = my_input ) # testing num_classes
-#                num_classes = len(lb.classes_), first_layer = my_input ) # testing num_classes
-#                num_classes = num_classes, first_layer = my_input )
-
-        # Builds model
-        model3 = Model( inputs = my_input, outputs = [loss3_classifier_act] )
-        model3.summary()
-    else:
-        # Builds model
-        print('[INFO] Loading model from file...')
-        model3 = load_model( model_file )
-        model3.summary()
-    '''
-    if (not reset_model and (weights_exist and not model_exist)):
-        model3.load_weights(weights_file)
-
-    '''
-    # partition the data into training and testing splits using 50% of
-    # the data for training and the remaining 50% for testing
-    (trainX, testX, trainY, testY) = train_test_split(data,
-        y_binary, test_size=0.8, random_state=42)
-#        labels, test_size=0.5, random_state=42)
-    (validateX, testX, validateY, testY) = train_test_split(testX, testY,
-            test_size=0.75, random_state=42)
-    params = {'dim':(kernel_pixels,kernel_pixels), 'batch_size': batch_size,
-            'n_classes': num_classes,
-            'n_channels': image_channels,
-            'shuffle': True, 'augment_data': augment_data}
-    # construct the image generator for data augmentation
-    my_batch_gen = DataGenerator(trainX, trainY, **params)
-    print('creating generator with trainX, trainY of shapes: (%s, %s)' %
-            (trainX.shape, trainY.shape)
-            )
-    ## initialize the model
-    print("[INFO] compiling model...")
-    print('SmallInception: (depth, width, height, classes) = (%s, %s, %s, %s)' %
-           (IMAGE_DIMS[0], IMAGE_DIMS[1], IMAGE_DIMS[2], len(lb.classes_))
-           )
-    if (validate_only):
-        print("[INFO] Skipping training...")
-        print("[INFO] Validate-only model:", validate_only)
-        pass
-    else:
-        print("[INFO] Training...")
-        print("[INFO] Reset model:", reset_model)
-        print("[INFO] Validate-only model:", validate_only)
-        # opt=Adam(lr=INIT_LR, decay=INIT_DECAY)   # Old decay was: INIT_LR / EPOCHS)
-        # opt = Adam(lr=INIT_LR, beta_1=INIT_DECAY, amsgrad=True)
-        opt = Adadelta(learning_rate=INIT_LR)
-        model3.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
-        # define the network's early stopping
-        print("[INFO] define early stop and auto save for network...")
-        auto_save = ModelCheckpoint(model_file, monitor = 'val_accuracy', verbose = 0,
-                                    save_best_only = True, save_weights_only=False,
-                                    mode='auto')
-        # can use validation set loss or accuracy to stop early
-        # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
-        early_stop = EarlyStopping( monitor = 'val_loss', mode='min', verbose=1, patience=50 )
-        # train the network
-        print("[INFO] training network...")
-        # Train the model
-        H = model3.fit(
-            my_batch_gen,
-            validation_data=(validateX, validateY),
-            steps_per_epoch=len(trainX) // batch_size,
-            # callbacks=[early_stop, auto_save],
-            callbacks=[auto_save],
-            epochs=num_epochs, verbose=1)
-        '''
-        H = model3.fit_generator(
-            generator = my_batch_gen,
-            validation_data=(validateX, validateY),
-            steps_per_epoch=len(trainX) // batch_size,
-            # callbacks=[early_stop, auto_save],
-            callbacks=[auto_save],
-            epochs=num_epochs, verbose=1)
-        '''
-        # save the model to disk
-        print("[INFO] serializing network...")
-        model3.save( model_file )
-        # save the label binarizer to disk
-        print("[INFO] serializing label binarizer...")
-        f = open(label_file, "wb")
-        f.write(pickle.dumps(lb))
-        f.close()
-
-    # testY = lb.inverse_transform( testY ).astype(np.int64)
-    testY = argmax(testY, axis=1)
-    print('[INFO] Predicting ...')
-    pre_y2 = model3.predict(testX, verbose = 1)
-    print("pred set:", pre_y2[:10])
-    pre_y2_prob = pre_y2
-    pre_y2 = pre_y2.argmax(axis=-1)
-    acc2 = accuracy_score(testY, pre_y2)
-    print("test set:", testY[:10])
-    print("pred set:", pre_y2[:10])
+    # Calculate accuracy
+    new_map = new_map.flatten()
+    mask_b = mask_b.flatten()
+    acc2 = accuracy_score(mask_b, new_map)
     print('Accuracy on test set: {0:.3f}'.format(acc2))
     print("Confusion Matrix:")
-    print(confusion_matrix(testY, pre_y2))
+    print(confusion_matrix(mask_b, new_map))
     print()
     print("Classification Report")
-    print(classification_report(testY, pre_y2))
-    # Calculate ROC Curves if required
-    if output_curves_file is not None:
-        ROC_curve_calc( testY, pre_y2, class_num = 8, output_file_header = output_curves_file)
-    if (not validate_only):
-        # plot the training loss and accuracy
-        plt.style.use("ggplot")
-        plt.figure()
-        N = num_epochs
-        plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
-        plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-        #plt.plot(np.arange(0, N), H.history["accuracy"], label="train_accuracy")
-        plt.plot(np.arange(0, N), H.history["accuracy"], label="train_acc")
-        plt.plot(np.arange(0, N), H.history["val_accuracy"],
-                label="val_accuracy")
-        plt.title("Training Loss and Accuracy")
-        plt.xlabel("Epoch #")
-        plt.ylabel("Loss/Accuracy")
-        plt.legend(loc="upper left")
-        plt.savefig(plot_file)
+    print(classification_report(mask_b, new_map))
 
