@@ -377,7 +377,9 @@ if __name__ == '__main__':
     outBand.SetNoDataValue(-99)
     outDs.SetGeoTransform(inDs.GetGeoTransform())
     outDs.SetProjection(inDs.GetProjection())
+    outDs.FlushCache()
     del outData
+    outDs = None
     print("saving file: prediction_raster.gri")
 
 
