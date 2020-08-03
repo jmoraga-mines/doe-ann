@@ -24,6 +24,7 @@ from keras.models import load_model
 from keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from keras.regularizers import l2
 from keras.utils import to_categorical
+from keras.utils import multi_gpu_model
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -39,6 +40,7 @@ from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.metrics import roc_curve, auc
+#from tensorflow.compat.v2.keras.utils import multi_gpu_model
 
 
 matplotlib.use("Agg")
@@ -143,7 +145,7 @@ class DataGenerator(keras.utils.Sequence):
             X[i,] = image_raw
             # Store class
             y[i] = self.labels[ID]
-        return X, y
+        return np.asarray(X), np.asarray(y)
 
 
 def inception_m( input_net, first_layer = None ):
@@ -268,7 +270,9 @@ if __name__ == '__main__':
     ap.add_argument("-d", "--dataset", required=True,
                     help="path to input dataset (i.e., directory of images)")
     ap.add_argument("-e", "--epochs", required=False, type=int,
-                    help="Number of epochs to train)", default=EPOCHS)
+                    help="Number of epochs to train", default=EPOCHS)
+    ap.add_argument("-g", "--gpus", required=False, type=int,
+                    help="Number of GPUs to run in parallel", default=1)
     ap.add_argument("-k", "--kernel_pixels", required=False,
                     help='Number of pixels by side in each image',
                     default=KERNEL_PIXELS, type=int)
@@ -297,6 +301,7 @@ if __name__ == '__main__':
     image_channels = args["channels"]
     dataset_path = args["dataset"]
     num_epochs = args["epochs"]
+    num_gpus = args["gpus"]
     kernel_pixels = args["kernel_pixels"]
     label_file = args["labelbin"]
     model_file = args["model"]
@@ -408,6 +413,8 @@ if __name__ == '__main__':
         model3.load_weights(weights_file)
 
     '''
+    if (num_gpus>1):
+        model3 = multi_gpu_model( model3, gpus = num_gpus )
     # partition the data into training and testing splits using 50% of
     # the data for training and the remaining 50% for testing
     (trainX, testX, trainY, testY) = train_test_split(data,
@@ -439,7 +446,8 @@ if __name__ == '__main__':
         print("[INFO] Validate-only model:", validate_only)
         # opt=Adam(lr=INIT_LR, decay=INIT_DECAY)   # Old decay was: INIT_LR / EPOCHS)
         # opt = Adam(lr=INIT_LR, beta_1=INIT_DECAY, amsgrad=True)
-        opt = Adadelta(learning_rate=INIT_LR)
+        # opt = Adadelta(learning_rate=INIT_LR)
+        opt = Adadelta()
         model3.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")

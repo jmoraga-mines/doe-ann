@@ -433,7 +433,8 @@ if __name__ == '__main__':
         print("[INFO] Validate-only model:", validate_only)
         # opt=Adam(lr=INIT_LR, decay=INIT_DECAY)   # Old decay was: INIT_LR / EPOCHS)
         # opt = Adam(lr=INIT_LR, beta_1=INIT_DECAY, amsgrad=True)
-        opt = Adadelta(learning_rate=INIT_LR)
+        # opt = Adadelta(learning_rate=INIT_LR)
+        opt = Adadelta()
         model3.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")
@@ -451,7 +452,7 @@ if __name__ == '__main__':
             validation_data=(validateX, validateY),
             steps_per_epoch=len(trainX) // batch_size,
             # callbacks=[early_stop, auto_save],
-            callbacks=[auto_save],
+            callbacks=[auto_save, early_stop],
             epochs=num_epochs, verbose=1)
         '''
         H = model3.fit_generator(
