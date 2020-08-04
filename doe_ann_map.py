@@ -363,7 +363,7 @@ if __name__ == '__main__':
     print('saving file:', file_name)
     f = open(file_name, 'wb')
     np.save(f, new_map)
-    inDs = gdal.Open(image_file)
+    inDs = gdal.Open(image_name)
     band1 = inDs.GetRasterBand(1)
     rows = inDs.RasterYSize
     cols = inDs.RasterXSize
