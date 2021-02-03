@@ -24,6 +24,8 @@ from keras.models import load_model
 from keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from keras.regularizers import l2
 from keras.utils import to_categorical
+from keras.utils import multi_gpu_model
+
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -256,6 +258,8 @@ if __name__ == '__main__':
                     help="path to input dataset (i.e., directory of images)")
     ap.add_argument("-e", "--epochs", required=False, type=int,
                     help="Number of epochs to train)", default=EPOCHS)
+    ap.add_argument("-g", "--gpus", required=False, type=int,
+                    help="Number of GPUs to run in parallel", default=1)
     ap.add_argument("-k", "--kernel_pixels", required=False,
                     help='Number of pixels by side in each image',
                     default=KERNEL_PIXELS, type=int)
@@ -284,6 +288,7 @@ if __name__ == '__main__':
     image_channels = args["channels"]
     dataset_path = args["dataset"]
     num_epochs = args["epochs"]
+    num_gpus = args["gpus"]
     kernel_pixels = args["kernel_pixels"]
     label_file = args["labelbin"]
     model_file = args["model"]
@@ -395,6 +400,9 @@ if __name__ == '__main__':
         model3.load_weights(weights_file)
 
     '''
+    ### Check whether multi-gpu option was enabled
+    if (num_gpus>1):
+        model3 = multi_gpu_model( model3, gpus = num_gpus )
     # partition the data into training and testing splits using 50% of
     # the data for training and the remaining 50% for testing
     (trainX, testX, trainY, testY) = train_test_split(data,
