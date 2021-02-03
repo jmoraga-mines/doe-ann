@@ -37,7 +37,7 @@ fi
 if [ -d "desert_samples_19x3a" ]
 then
    echo "Samples directory exists, running ANN training"
-   time(python doe_ann_paper.py -a -c 3 -d desert_samples_19x3a -k 19 -b 200 -e 100 -l tmp/desert_19x3a100 -m tmp/desert_19x3a100 -g 4 -r)
+   time(python doe_ann_paper.py -a -c 3 -d desert_samples_19x3a -k 19 -b 200 -e 100 -l tmp/desert_19x3a100.l -m tmp/desert_19x3a100.h5 -g 4 -r)
 else
    echo "Samples directory *desert_samples_19x3a* does not exist, run data creator"
 fi
@@ -46,7 +46,7 @@ fi
 if [ -d "desert_samples_19x3d" ]
 then
    echo "Samples directory exists, running ANN training"
-   time(python doe_ann_paper.py -a -c 3 -d desert_samples_19x3d -k 19 -b 200 -e 100 -l tmp/desert_19x3d100 -m tmp/desert_19x3d100 -g 4 -r)
+   time(python doe_ann_paper.py -a -c 3 -d desert_samples_19x3d -k 19 -b 200 -e 100 -l tmp/desert_19x3d100.l -m tmp/desert_19x3d100.h5 -g 4 -r)
 else
    echo "Samples directory *desert_samples_19x3d* does not exist, run data creator"
 fi
