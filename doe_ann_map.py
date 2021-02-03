@@ -24,6 +24,9 @@ from keras.models import load_model
 from keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from keras.regularizers import l2
 from keras.utils import to_categorical
+from keras.utils import multi_gpu_model
+
+from tqdm import tqdm
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -151,6 +154,8 @@ if __name__ == '__main__':
                     default=CHANNELS, type=int)
     ap.add_argument("-e", "--epochs", required=False, type=int,
                     help="Number of epochs to train)", default=EPOCHS)
+    ap.add_argument("-g", "--gpus", required=False, type=int,
+                    help="Number of GPUs to run in parallel", default=1)
     ap.add_argument("-i", "--image", required=True,
                     help="path to input multi-band image (i.e., image file name)")
     ap.add_argument("-k", "--kernel_size", required=False,
@@ -160,21 +165,22 @@ if __name__ == '__main__':
     ap.add_argument("-m", "--model", required=True, help="path to output model")
     ap.add_argument("-n", "--num_classes", required=False, help='Number of classes',
                     default=NUM_CLASSES, type=int)
-    ap.add_argument("-p", "--plot", type=str, default="plot.png",
-                    help="path to output accuracy/loss plot")
-    ap.add_argument("-o", "--output_curves", required=False, help="Starting file name for ROC curves",
-                    default = None)
+    ap.add_argument("-p", "--prediction_map", required=False, type=str, default="prediction_map.npy",
+                    help="path to output prediction map (ending in .npy)")
+    ap.add_argument("-o", "--output_raster", required=False, type=str, help="Raster file ending in .gri",
+                    default = "prediction_raster.gri")
     args = vars(ap.parse_args())
     batch_size = args["batch_size"]
     num_channels = args["channels"]
     num_epochs = args["epochs"]
+    num_gpus = args["gpus"]
     image_name = args["image"]
     kernel_size = args["kernel_size"]
     label_file = args["labelbin"]
     model_file = args["model"]
     num_classes = args["num_classes"]
-    plot_file = args["plot"]
-    output_curves_file = args["output_curves"]
+    prediction_map = args["prediction_map"]
+    output_raster = args["output_raster"]
     # Ensures model file exists and is really a file
     PADDING = int(kernel_size/2)
     try:
@@ -221,8 +227,12 @@ if __name__ == '__main__':
     print('[INFO] Loading model from file...')
     model3 = load_model( model_file )
     # model3.summary()
+    ### Check whether multi-gpu option was enabled
+    if (num_gpus>1):
+        model3 = multi_gpu_model( model3, gpus = num_gpus )
     print('[INFO] Creating prediction map...')
-    for i in range(img_x):
+    for i in tqdm(range(img_x), desc="Predicting...",
+                  ascii=False, ncols=75):
         # initialize the data and labels
         data = []
         labels = []
@@ -242,9 +252,8 @@ if __name__ == '__main__':
         pre_y = pre_y.argmax(axis=-1)
         new_map[i,:] = pre_y
     new_map = np.asarray(new_map)
-    file_name = "prediction_map.npy"
-    print('saving file:', file_name)
-    f = open(file_name, 'wb')
+    print('saving file:', prediction_map)
+    f = open(prediction_map, 'wb')
     np.save(f, new_map)
     inDs = gdal.Open(image_name)
     band1 = inDs.GetRasterBand(1)
@@ -252,7 +261,7 @@ if __name__ == '__main__':
     cols = inDs.RasterXSize
     cropData = band1.ReadAsArray(0,0,cols,rows)
     driver = inDs.GetDriver()
-    outDs = driver.Create("prediction_raster.gri", cols, rows, 1, GDT_Int32)
+    outDs = driver.Create(output_raster, cols, rows, 1, GDT_Int32)
     outBand = outDs.GetRasterBand(1)
     outData = new_map.T
     outBand.WriteArray(outData, 0, 0)
@@ -263,7 +272,7 @@ if __name__ == '__main__':
     outDs.FlushCache()
     del outData
     outDs = None
-    print("saving file: prediction_raster.gri")
+    print("saving file: ", output_raster)
 
 
     # Calculate accuracy
