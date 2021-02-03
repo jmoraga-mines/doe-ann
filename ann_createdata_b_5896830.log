@@ -1,0 +1,68 @@
+/u/mx/fo/jmoraga/subt/doe-ann
+g003
+Tue Feb  2 19:46:16 MST 2021
+Current shell:
+   PID TTY          TIME CMD
+ 30585 ?        00:00:00 bash
+/u/mx/fo/jmoraga/.conda/envs/testmini/bin/python
+Samples directory exists, deleting
+Running time(python...brady -k 19 -s 1000)
+band ( 0 ) min: 0.0
+band ( 0 ) max: 1.0
+band ( 1 ) min: 0.0
+band ( 1 ) max: 1.0
+band ( 2 ) min: 0.0
+band ( 2 ) max: 1.0
+Items in class  0 :  220723
+Items in class  1 :  322114
+
+real	0m5.455s
+user	0m2.361s
+sys	0m2.777s
+Running time(python...brady -k 19 -s 100000)
+band ( 0 ) min: 0.0
+band ( 0 ) max: 1.0
+band ( 1 ) min: 0.0
+band ( 1 ) max: 1.0
+band ( 2 ) min: 0.0
+band ( 2 ) max: 1.0
+Items in class  0 :  220723
+Items in class  1 :  322114
+
+real	7m6.951s
+user	2m14.299s
+sys	0m41.980s
+files under: brady_samples_19x3d/0
+100000
+files under: brady_samples_19x3d/1
+100000
+Running time(python...brady -k 19 -s 1000)
+band ( 0 ) min: 0.0
+band ( 0 ) max: 1.0
+band ( 1 ) min: 0.0
+band ( 1 ) max: 1.0
+band ( 2 ) min: 0.0
+band ( 2 ) max: 1.0
+Items in class  0 :  220723
+Items in class  1 :  322114
+
+real	0m5.464s
+user	0m2.546s
+sys	0m2.709s
+Running time(python...brady -k 19 -s 100000)
+band ( 0 ) min: 0.0
+band ( 0 ) max: 1.0
+band ( 1 ) min: 0.0
+band ( 1 ) max: 1.0
+band ( 2 ) min: 0.0
+band ( 2 ) max: 1.0
+Items in class  0 :  220723
+Items in class  1 :  322114
+
+real	29m24.215s
+user	2m13.899s
+sys	0m41.867s
+files under: brady_samples_19x5d/0
+100000
+files under: brady_samples_19x5d/1
+100000
