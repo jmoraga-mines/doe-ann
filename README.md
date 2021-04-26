@@ -3,11 +3,12 @@ ANN for Geothermal classification
 
 ## Set up directory structure 
 Create a directory structure on a base directory, that includes the Python scripts in one subdirectory and the data files in a second subdirectory.
-
-[base]-+-- doe-ann [This repository]
-       +-- doe-data
-       +-- doe-results
-
+```
+--+- base directory
+  +- doe-ann [This repository]
+  +- doe-data
+  +- doe-results
+```
 ## Create DOE dataset
 **python create_doe_dataset.py -i ../doe-som/brady_som_output.gri -c 3 -d ../doe-data/brady_samples_19x3d -s 100000 -k 19**
 
