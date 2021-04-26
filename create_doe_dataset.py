@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Create Dataset directories from DOE Geothermal
-layer input GeoTIFFs. They have the following layers:
-- Minerals
-- Faults
-- Land Surface Temperature
-- Geothermal Presence (Ground Truth)
+  Create Dataset directories from DOE Geothermal
+  layer input GeoTIFFs. They have the following layers:
+  - Minerals
+  - Faults
+  - Land Surface Temperature
+  - Geothermal Presence (Ground Truth)
 
-Created 2020-06-10
-Updated 2020-06-12
+  Created 2020-06-10
+  Updated 2020-06-12
 
-@authors: jim
+  @authors: Jim Moraga <jmoraga@mines.edu>
 """
 
 import numpy as np

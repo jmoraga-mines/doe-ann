@@ -10,3 +10,7 @@ sb_samples
 simple_test.py
 *.png
 *_samples_*/
+tmp/
+old_files/
+old_logs/
+py_backup/

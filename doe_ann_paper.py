@@ -1,5 +1,4 @@
 """
-
   DOE Project : 
   Task        : 
   File        : 
@@ -7,6 +6,8 @@
     This is the main program to create, train and use an ANN to classify
   regions based on geothermal potential.
 
+
+  @authors: Jim Moraga <jmoraga@mines.edu>
 """
 
 
