@@ -1,7 +1,7 @@
 #!/bin/env bash
 #SBATCH --job-name=ann_createdata_d   # Job name
 #SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=tmoraga@gmail.com # Where to send mail      
+#SBATCH --mail-user=jmoraga@mines.edu # Where to send mail      
 #SBATCH --ntasks=1                    # Run on a single CPU
 # Don't use #SBATCH --gres=gpu        # We need a GPU for Tensorflow
 # Don't use #SBATCH -w, --nodelist=g005,c026,c028
