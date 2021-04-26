@@ -15,8 +15,6 @@
 
 import numpy as np
 import doe_tiff as dt
-# import cv2
-# import skimage.io
 import os
 import argparse
 
@@ -57,8 +55,6 @@ if __name__ == '__main__':
     PADDING = int(kernel_size/2)
     img_b = dt.io.read_gdal_file(image_name)
     max_channels = img_b.shape[2]
-    # By Jim: to reduce the size of the input tiff
-    # img_b_scaled = img_b[:,1200:-500,2700:]
     assert num_channels>0, 'Channels has to be a positive integer'
     assert num_channels<=max_channels, 'Channels has to be equal or lower than {}'.format(max_channels)
     img_b_scaled = img_b[:, :, 1:num_channels+1]
@@ -66,16 +62,8 @@ if __name__ == '__main__':
     for i in range(0, img_b_scaled.shape[2]):
         print("band (",i,") min:", img_b_scaled[:,:,i].min())
         print("band (",i,") max:", img_b_scaled[:,:,i].max())
-
-    # print('# Items with class 1: ', len(mask_b))
-    # print('original image:')
-    # print( img_b[:3, :4, :4] )
-    # print('scaled image:')
-    # print( img_b_scaled[:3, :4, :4] )
-
     img_b_scaled = dt.frame_image(img_b_scaled, PADDING)
     sc = dt.GeoTiffConvolution(img_b_scaled, kernel_size, kernel_size)
-
     # Land classes go from 0 to 1
     for land_type_class in range(0, 2):
         mask_b_class = np.array(np.where(mask_b == land_type_class)).T
@@ -86,8 +74,7 @@ if __name__ == '__main__':
         os.makedirs(path_name)
         for c in choices:
             my_slice = sc.apply_mask(mask_b_scaled[c][0], mask_b_scaled[c][1])
-            # my_slice = my_slice.transpose((1, 2, 0))
             file_name = path_name + 'slice_'+str(c)+'.npy'
-            # print('saving file:', file_name)
+            # Save model file
             f = open(file_name, 'wb')
             np.save(f, my_slice)

@@ -11,6 +11,7 @@
 """
 
 
+# Ensure Python 2 & 3 compatibility
 from __future__ import print_function
 # import the necessary packages
 import argparse
@@ -26,9 +27,9 @@ from keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from keras.regularizers import l2
 from keras.utils import to_categorical
 from keras.utils import multi_gpu_model
-
+# Progress bar
 from tqdm import tqdm
-
+# Matlab plotting library for charts
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -46,44 +47,34 @@ from sklearn.metrics import roc_curve, auc
 import doe_tiff as dt
 from osgeo import gdal
 from osgeo.gdalconst import *
-
-
-
+# Setup matplotlib
 matplotlib.use("Agg")
+# Create defaults for file names
 DEFAULT_WEIGHTS_FILE_NAME = 'doe_cnn.weights'
 DEFAULT_MODEL_FILE_NAME = 'doe_cnn.model'
 DEFAULT_LABEL_FILE_NAME = 'doe_cnn.labels.pickle'
-
+# Define defaults for input file parameters
 CHANNELS = 5            # This will be redefined based on parameters
-INIT_LR = 5e-1          # Default Loss Rate
-# INIT_LR = 1e-2          # Default Loss Rate
-INIT_DECAY = 1e-3       # Default Decay
-# INIT_DECAY = 1e-1       # Default Decay
 KERNEL_PIXELS = 17      # Default pixels by side on each tile
 NUM_CLASSES = 2         # Default number of classes ("Geothermal", "Non-Geothermal")
+# Default hyperparameters
+INIT_LR = 5e-1          # Default Loss Rate
+INIT_DECAY = 1e-3       # Default Decay
 BS = 32
 EPOCHS = 500
-
+# Default labels
 class2code = {'none': 0,
               'Non-geothemal':1,
               'Geothemal':2}
-
 code2class = {0: 'none',
               1: 'Non-geothemal',
               2: 'Geothemal'}
 
-
-
-
-'''
-# In case we need to append directories to Python's path
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(BASE_DIR)
-#sys.path.append(os.path.join(ROOT_DIR, 'a_directory'))
-'''
-
+# Ensure Python 3 is being called
 try:
     raw_input          # Python 2
+    print("Run in Python 3")
+    raise SystemExit
 except NameError:
     raw_input = input  # Python 3
 
@@ -102,9 +93,6 @@ def ROC_curve_calc( testY, pre_y2, class_num, output_file_header ):
     n_classes=class_num
     for i in range(1, n_classes):
         class_plot = i
-        # class_indexes = np.where( testY == i )
-        # print('For testY, shape = ', testY.shape)
-        # print('For testY, first item = ', testY[0])
         true_labels = (testY[:]==i)
         pred_probs = (pre_y2[:]==i)
         if class_plot == 0:
@@ -116,10 +104,6 @@ def ROC_curve_calc( testY, pre_y2, class_num, output_file_header ):
         print('For true_labels, first item = ', true_labels[0])
         fpr[i], tpr[i], _ = roc_curve( true_labels, pred_probs) # , pos_label = 1)
         roc_auc[i] = auc(fpr[i], tpr[i])
-        # Compute micro-average ROC curve and area
-        # fpr["micro"], tpr["micro"], _ = roc_curve( testY.ravel(), pre_y2.ravel() )
-        # fpr["micro"], tpr["micro"], _ = roc_curve( testY, pre_y2 )
-        # roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
     for i in range(1, n_classes):
         # Plot for a class
         class_plot = i
@@ -227,7 +211,6 @@ if __name__ == '__main__':
     # Builds model
     print('[INFO] Loading model from file...')
     model3 = load_model( model_file )
-    # model3.summary()
     ### Check whether multi-gpu option was enabled
     if (num_gpus>1):
         model3 = multi_gpu_model( model3, gpus = num_gpus )
@@ -242,13 +225,8 @@ if __name__ == '__main__':
         for j in range(img_y):
             image = sc.apply_mask(i+PADDING, j+PADDING)
             data.append(image)
-            # label = mask_b[i, j]
-            # labels.append(label)
         data = np.array(data, dtype=np.float)
         data = np.nan_to_num(data)
-        # print("Cropped image shape:", image.shape)
-        # print("first image shape:", data[0].shape)
-        # print("number of images:", len(data))
         pre_y = model3.predict( data, verbose = 0 )
         pre_y = pre_y.argmax(axis=-1)
         new_map[i,:] = pre_y
@@ -274,8 +252,6 @@ if __name__ == '__main__':
     del outData
     outDs = None
     print("saving file: ", output_raster)
-
-
     # Calculate accuracy
     new_map = new_map.flatten()
     mask_b = mask_b.flatten()
@@ -286,4 +262,3 @@ if __name__ == '__main__':
     print()
     print("Classification Report")
     print(classification_report(mask_b, new_map))
-
