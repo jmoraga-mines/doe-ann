@@ -1,14 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-  Create Dataset directories from DOE Geothermal
-  layer input GeoTIFFs. They have the following layers:
-  - Minerals
-  - Faults
-  - Land Surface Temperature
-  - Geothermal Presence (Ground Truth)
+  Create maps showing training data points
+  the "Selected" layer includes training, testing and validation sets
 
-  Created 2020-06-10
-  Updated 2020-06-12
+  Created 2021-05-24
+  Updated 2021-05-25
 
   @authors: Jim Moraga <jmoraga@mines.edu>
 """
@@ -65,10 +61,6 @@ if __name__ == '__main__':
     mask_c = np.zeros_like(mask_b) # Create new band to host the random choices
     mask_t = np.zeros_like(mask_b) # Create new band to host the training choices
     mask_a = np.zeros_like(mask_b) # Create new band to host the training area
-    # mask_b_0 = np.array(np.where(mask_b == 0)).T
-    # mask_b_1 = np.array(np.where(mask_b == 1)).T
-    # choices_0 = np.random.choice(len(mask_b_0), num_samples, replace=False)
-    # choices_1 = np.random.choice(len(mask_b_1), num_samples, replace=False)
     # Land classes go from 0 to 1
     for land_type_class in range(0, 2):
         mask_b_class = np.array(np.where(mask_b == land_type_class)).T
