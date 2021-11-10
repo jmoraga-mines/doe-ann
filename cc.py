@@ -91,6 +91,7 @@ if __name__ == '__main__':
     outBand_2 = outDs.GetRasterBand(2)
     outBand_3 = outDs.GetRasterBand(3)
     outBand_4 = outDs.GetRasterBand(4)
+    mask_b = np.where(~np.logical_or(mask_b==0, mask_b==1), np.nan, mask_b)
     outBand_1.WriteArray(np.asarray(mask_b).T)
     outBand_1.SetNoDataValue(-99)
     outBand_1.SetDescription("Geothermal")
