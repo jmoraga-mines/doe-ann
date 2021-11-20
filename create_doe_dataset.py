@@ -17,6 +17,7 @@ import numpy as np
 import doe_tiff as dt
 import os
 import argparse
+from tqdm import tqdm
 
 
 # Default values
@@ -72,7 +73,7 @@ if __name__ == '__main__':
         choices = np.random.choice(len(mask_b_scaled), num_samples, replace=False)
         path_name = output_directory + '/' + str(land_type_class) + '/'
         os.makedirs(path_name)
-        for c in choices:
+        for c in tqdm(choices, desc="Calculating...", ascii=False, ncols=75):
             my_slice = sc.apply_mask(mask_b_scaled[c][0], mask_b_scaled[c][1])
             file_name = path_name + 'slice_'+str(c)+'.npy'
             # Save model file
