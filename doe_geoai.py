@@ -22,7 +22,7 @@ from keras.layers import AveragePooling2D, Input, Concatenate
 from keras.layers.convolutional import Conv2D, MaxPooling2D
 from keras.layers.core import Activation, Flatten, Dropout, Dense
 from keras.models import Model
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from keras.regularizers import l2
 from keras.utils import to_categorical
