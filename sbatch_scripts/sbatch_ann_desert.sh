@@ -10,23 +10,22 @@
 #SBATCH --output=paper_desert_100_%j.log   # Standard output and error log
 #SBATCH -p sgpu                       # run only in "gpu" nodes, we need tensorflow
 #SBATCH --exclusive                  # run only this job
+
+# print some info 
 echo `pwd`
 echo `hostname`; date
 echo "Current shell:"
 ps -p $$
 module purge
-module add libs/cuda/10.1
-source ~/.bashrc
-#conda init bash
-#export PATH="/u/mx/fo/jmoraga/scratch/miniconda3/bin:$PATH"
+module load anaconda
+module load cuda/10.2
+module load cudnn
+source /curc/sw/anaconda3/latest
 cd /projects/edemir@xsede.org/doe-ann
-#cd ~/subt/doe-ann
-# conda deactivate
-conda activate geoai2
-#conda info
+conda activate doe-env
+# print some more info 
 echo `which python`
 echo `pwd`
-echo `ls`
 echo `nvidia-smi`
 
 # Checks that the directory exists

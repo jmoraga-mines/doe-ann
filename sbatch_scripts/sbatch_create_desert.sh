@@ -12,24 +12,19 @@
 # Dont use #SBATCH -p compute    # run only in "compute" nodes, we don't need tensorflow
 #SBATCH --exclusive   # run only this job
 
+# print some info 
 echo `pwd`
 echo `hostname`; date
 echo "Current shell:"
 ps -p $$
 module purge
 module load anaconda
-# module add libs/cuda/10.1  # This does not work in XSEDE, only in Wendian
 module load cuda/10.2
 module load cudnn
-#source ~/.bashrc
 source /curc/sw/anaconda3/latest
-#conda init bash
-#export PATH="/u/mx/fo/jmoraga/scratch/miniconda3/bin:$PATH"
 cd /projects/edemir@xsede.org/doe-ann
-#cd ~/subt/doe-ann
-# conda deactivate
 conda activate doe-env
-#conda info
+# print some more info 
 echo `which python`
 echo `pwd`
 echo `nvidia-smi`
