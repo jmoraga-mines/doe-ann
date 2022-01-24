@@ -20,7 +20,7 @@ module purge
 module add libs/cuda/10.1
 source /curc/sw/anaconda3/latest
 cd /projects/edemir@xsede.org/doe-ann
-conda activate dae-ai-env
+conda activate doe-env
 echo `which python`
 echo `pwd`
 echo `nvidia-smi`
