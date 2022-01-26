@@ -37,7 +37,7 @@ then
 fi
 
 # Checks that the model file exists
-if [ -f "../doe-data/brady_19x3a100.h5" ]
+if [ -f "../doe-data/brady_s19x3x1000.h5" ]
 then
    echo "Samples directory exists, running ANN mapping"
    time(python doe_ann_map.py -c 3 -k 19 -b 200 -l ../doe-data/brady_s19x3x1000.l -m ../doe-data/brady_s19x3x1000.h5 -g 4 -i ../doe-som/brady_som_output.gri -p ../paper_results/brady_19x3d100.npy -o ../paper_results/brady_19x3d100.gri)
