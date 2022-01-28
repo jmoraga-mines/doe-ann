@@ -403,7 +403,7 @@ if __name__ == '__main__':
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")
         auto_save = ModelCheckpoint(model_file, monitor = 'val_accuracy', verbose = 0,
-                                    save_best_only = True, save_weights_only=False,
+                                    save_best_only = True, save_weights_only=True,
                                     mode='auto')
         # can use validation set loss or accuracy to stop early
         # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)

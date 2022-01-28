@@ -17,6 +17,7 @@ from __future__ import print_function
 # import the necessary packages
 import argparse
 from imutils import paths
+import tensorflow as tf
 # from tensorflow import keras # not needed anymore
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.layers import AveragePooling2D, Input, Concatenate
@@ -186,7 +187,7 @@ if __name__ == '__main__':
     weights_exist = False
     # Read model file
     print('[INFO] Loading model from file...')
-    model3 = load_model( model_file )
+    model3 = load_model( model_file, {'tf': tf} )
     model3.summary()
     # Get rid of NaN's
     img_b = np.array(img_b, dtype=np.float64)
