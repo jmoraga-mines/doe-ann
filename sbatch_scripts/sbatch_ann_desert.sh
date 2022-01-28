@@ -37,10 +37,10 @@ then
 fi
 
 # Checks that the samples directory exists
-if [ -d "../doe-data/desert_samples_19x3" ]
+if [ -d "../samples/desert/s19x3x1000" ]
 then
    echo "Samples directory exists, running ANN training"
-   time(python doe_geoai.py --gpus=4 -a -c 3 -d ../doe-data/desert_samples_19x3 -k 19 -b 200 -e 100 -l ../doe-data/desert_19x3a100.l -m ../doe-data/desert_19x3a100.h5 -g 4 -r)
+   time(python doe_geoai.py --gpus=4 -a -c 3 -d ../samples/desert/s19x3x1000 -k 19 -b 200 -e 100 -l ../doe-data/desert_19x3a100.l -m ../doe-data/desert_19x3a100.h5 -g 4 -r)
 else
    echo "Samples directory *desert_samples_19x3* does not exist, run data creator"
 fi
