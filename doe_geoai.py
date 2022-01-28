@@ -16,17 +16,17 @@ from __future__ import print_function
 import argparse
 from imutils import paths
 from tqdm import tqdm
-import keras
-from keras.callbacks import EarlyStopping, ModelCheckpoint
-from keras.layers import AveragePooling2D, Input, Concatenate
-from keras.layers.convolutional import Conv2D, MaxPooling2D
-from keras.layers.core import Activation, Flatten, Dropout, Dense
-from keras.models import Model
+#import keras
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.layers import AveragePooling2D, Input, Concatenate
+from tensorflow.keras.layers.convolutional import Conv2D, MaxPooling2D
+from tensorflow.keras.layers.core import Activation, Flatten, Dropout, Dense
+from tensorflow.keras.models import Model
 from tensorflow.keras.models import load_model
-from keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
-from keras.regularizers import l2
-from keras.utils import to_categorical
-from keras.utils import multi_gpu_model
+from tensorflow.keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.utils import multi_gpu_model
 
 
 import matplotlib
