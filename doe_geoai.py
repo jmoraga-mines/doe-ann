@@ -15,6 +15,7 @@ from __future__ import print_function
 # import the necessary packages
 import argparse
 from imutils import paths
+from tqdm import tqdm
 import keras
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.layers import AveragePooling2D, Input, Concatenate
@@ -313,23 +314,23 @@ if __name__ == '__main__':
     random.shuffle(imagePaths)
     ## loop over the input images
     img_count = 0
-    for imagePath in imagePaths:
+    #### for imagePath in imagePaths:
+    for imagePath in tqdm((imagePaths), desc="Loading...",
+                          ascii=False, ncols=75):
         # Reads image file from dataset
-        image = np.load(imagePath)
+        # image = np.load(imagePath)
         # Our Model uses (width, height, depth )
-        data.append(image)
+        data.append(np.load(imagePath))
         # Gets label from subdirectory name and stores it
-        label = imagePath.split(os.path.sep)[-2]
-        labels.append(label)
-
+        # label = imagePath.split(os.path.sep)[-2]
+        labels.append(imagePath.split(os.path.sep)[-2])
     print('Read images:', len(data))
     # scale the raw pixel intensities to the range [0, 1]
-    data = np.asarray(data, dtype=np.float)
+    data = np.asarray(data, dtype=np.float64)
     data = np.nan_to_num(data)
     labels = np.array(labels)
     print("[INFO] data matrix: {:.2f}MB".format(
         data.nbytes / (1024 * 1024.0)))
-
     # binarize the labels
     lb = LabelBinarizer()
     labels_lb = lb.fit_transform(labels)
@@ -340,7 +341,6 @@ if __name__ == '__main__':
     print('Transformed labels:', (y_binary[:10]))
     print('Inverted labels:', (y_inverse[:10]))
     print('Any nulls?: ', np.isnan(data).any())
-    # sys.exit(0)  # exit after tests
     ###
     '''
     Creates the network
@@ -407,7 +407,8 @@ if __name__ == '__main__':
                                     mode='auto')
         # can use validation set loss or accuracy to stop early
         # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
-        early_stop = EarlyStopping( monitor = 'val_loss', mode='min', verbose=1, patience=50 )
+        # patience was 50
+        early_stop = EarlyStopping( monitor = 'val_loss', mode='min', verbose=1, patience=10)
         # train the network
         print("[INFO] training network...")
         # Train the model

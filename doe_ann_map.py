@@ -183,14 +183,14 @@ if __name__ == '__main__':
         print("Image file not found or erroneous")
         raise FileNotFoundError
     weights_exist = False
-
+    # Read model file
+    print('[INFO] Loading model from file...')
+    model3 = load_model( model_file )
+    model3.summary()
     # Get rid of NaN's
-    img_b = np.array(img_b, dtype=np.float)
+    img_b = np.array(img_b, dtype=np.float64)
     img_b = np.nan_to_num(img_b)
-    # By Jim: to reduce the size of the input tiff
     print("Image shape:", img_b.shape)
-    # img_b = img_b[200:500,1000:,:]
-    print("Resized image shape:", img_b.shape)
     assert num_channels>0, 'Channels has to be a positive integer'
     assert num_channels<=max_channels, 'Channels has to be equal or lower than {}'.format(max_channels)
     img_b_scaled = img_b[:, :, 1:num_channels+1]
@@ -208,12 +208,7 @@ if __name__ == '__main__':
 
     IMAGE_DIMS = (kernel_size, kernel_size, num_channels)
     BATCH_DIMS = (None, kernel_size, kernel_size, num_channels)
-    # Builds model
-    print('[INFO] Loading model from file...')
-    model3 = load_model( model_file )
     ### Check whether multi-gpu option was enabled
-    if (num_gpus>1):
-        model3 = multi_gpu_model( model3, gpus = num_gpus )
     print('[INFO] Creating prediction map...')
     for i in tqdm(range(img_x), desc="Predicting...",
                   ascii=False, ncols=75):
@@ -225,7 +220,7 @@ if __name__ == '__main__':
         for j in range(img_y):
             image = sc.apply_mask(i+PADDING, j+PADDING)
             data.append(image)
-        data = np.array(data, dtype=np.float)
+        data = np.array(data, dtype=np.float64)
         data = np.nan_to_num(data)
         pre_y = model3.predict( data, verbose = 0 )
         pre_y = pre_y.argmax(axis=-1)
