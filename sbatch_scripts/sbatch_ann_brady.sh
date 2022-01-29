@@ -22,7 +22,7 @@ module load cuda/10.2
 module load cudnn
 source /curc/sw/anaconda3/latest
 cd /projects/edemir@xsede.org/doe-ann
-conda activate doe-env
+conda activate jim
 # print some more info 
 echo `which python`
 echo `pwd`
