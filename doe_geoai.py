@@ -14,19 +14,23 @@
 from __future__ import print_function
 # import the necessary packages
 import argparse
+# import keras
 from imutils import paths
 from tqdm import tqdm
 #import keras
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.layers import AveragePooling2D, Input, Concatenate
-from tensorflow.keras.layers.convolutional import Conv2D, MaxPooling2D
-from tensorflow.keras.layers.core import Activation, Flatten, Dropout, Dense
+# from tensorflow.keras.layers.convolutional import Conv2D, MaxPooling2D
+from tensorflow.keras.layers import Conv2D, MaxPooling2D
+# from tensorflow.keras.layers.core import Activation, Flatten, Dropout, Dense
+from tensorflow.keras.layers import Activation, Flatten, Dropout, Dense
 from tensorflow.keras.models import Model
 from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.utils import multi_gpu_model
+from tensorflow.keras.utils import Sequence
 
 
 import matplotlib
@@ -75,7 +79,9 @@ class doe_ann_object(object):
     def __init__(self, root_dir):
         self.root_dir = root_dir
 
-class DataGenerator(keras.utils.Sequence):
+# when using import from keras
+# class DataGenerator(keras.utils.Sequence):
+class DataGenerator(Sequence):
     'Generates data for Keras'
     def __init__(self, data_set, labels, batch_size=BS,
             dim=(KERNEL_PIXELS,KERNEL_PIXELS,CHANNELS),
