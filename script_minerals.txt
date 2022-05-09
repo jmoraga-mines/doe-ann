@@ -1,0 +1,3 @@
+ python create_doe_dataset.py -i /store03/thesis/ai_stacks/MineralStacks/brady_minerals_stack.grd -c 7 -d ../doe-data/brady_samples_19x7d -s 100000 -k 19
+ python create_doe_dataset.py -i /store03/thesis/ai_stacks/MineralStacks/desert_minerals_stack.grd -c 7 -d ../doe-data/desert_samples_19x7d -s 100000 -k 19
+

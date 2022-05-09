@@ -1,0 +1,17 @@
+[general]
+[georeference]
+nrows=1409
+ncols=874
+xmin=326439
+ymin=4405092
+xmax=329061
+ymax=4409319
+projection=+proj=utm +zone=11 +datum=WGS84 +units=m +no_defs
+[data]
+datatype=INT4S
+nodatavalue=-99
+byteorder=little
+nbands=1
+minvalue=0
+maxvalue=1
+categorical=FALSE

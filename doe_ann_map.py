@@ -154,8 +154,8 @@ if __name__ == '__main__':
                     default=NUM_CLASSES, type=int)
     ap.add_argument("-p", "--prediction_map", required=False, type=str, default="prediction_map.npy",
                     help="path to output prediction map (ending in .npy)")
-    ap.add_argument("-o", "--output_raster", required=False, type=str, help="Raster file ending in .gri",
-                    default = "prediction_raster.gri")
+    ap.add_argument("-o", "--output_raster", required=False, type=str, help="Raster file ending in .grd",
+                    default = "prediction_raster.grd")
     args = vars(ap.parse_args())
     batch_size = args["batch_size"]
     num_channels = args["channels"]
