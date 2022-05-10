@@ -12,6 +12,15 @@
 
 
 from __future__ import print_function
+import os
+# Source: https://stackoverflow.com/questions/38073432/how-to-suppress-verbose-tensorflow-logging
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+# https://www.tensorflow.org/api_docs/python/tf/autograph/set_verbosity
+os.environ["AUTOGRAPH_VERBOSITY"] = "0"
+
+import tensorflow as tf
+tf.get_logger().setLevel("WARNING")
+
 # import the necessary packages
 import argparse
 # import keras
@@ -29,7 +38,12 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.utils import multi_gpu_model
+if tf.__version__ == "2.4.0":
+    from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
+else:
+    from tensorflow.keras.utils import multi_gpu_model
+# By Jim: it was...
+#    from tensorflow.keras.utils import multi_gpu_model
 from tensorflow.keras.utils import Sequence
 
 
@@ -310,6 +324,33 @@ if __name__ == '__main__':
     # initialize the data and labels
     data = []
     labels = []
+    ###
+    '''
+    Creates the network
+    '''
+    if (reset_model or not model_exist):
+        print('[INFO] Building model from scratch...')
+        # my_input = Input( shape=IMAGE_DIMS, batch_shape=BATCH_DIMS )
+        my_input = Input( shape=IMAGE_DIMS )
+        # One jigsaw module(s)
+        jigsaw_01 = jigsaw_m( my_input )
+        # Attaches end to jigsaw modules, returns class within num_classes
+        loss3_classifier_act = jigsaw_m_end( jigsaw_01,
+                num_classes = num_classes, first_layer = my_input ) # testing num_classes
+        # Builds model
+        model3 = Model( inputs = my_input, outputs = [loss3_classifier_act] )
+        model3.summary()
+    else:
+        # Builds model
+        print('[INFO] Loading model from file...')
+        model3 = load_model( model_file )
+        model3.summary()
+    ### Check whether multi-gpu option was enabled
+    ### Careful, no hardware validation on number of GPUs
+    if (num_gpus>1):
+        model3 = multi_gpu_model( model3, gpus = num_gpus )
+
+    ### Load data
     ## grab the image paths and randomly shuffle them
     print("[INFO] loading images...")
     imagePaths = sorted(list(paths.list_files(dataset_path)))
@@ -347,31 +388,9 @@ if __name__ == '__main__':
     print('Transformed labels:', (y_binary[:10]))
     print('Inverted labels:', (y_inverse[:10]))
     print('Any nulls?: ', np.isnan(data).any())
+    ### END Reading images
+    #
     ###
-    '''
-    Creates the network
-    '''
-    if (reset_model or not model_exist):
-        print('[INFO] Building model from scratch...')
-        # my_input = Input( shape=IMAGE_DIMS, batch_shape=BATCH_DIMS )
-        my_input = Input( shape=IMAGE_DIMS )
-        # One jigsaw module(s)
-        jigsaw_01 = jigsaw_m( my_input )
-        # Attaches end to jigsaw modules, returns class within num_classes
-        loss3_classifier_act = jigsaw_m_end( jigsaw_01,
-                num_classes = num_classes, first_layer = my_input ) # testing num_classes
-        # Builds model
-        model3 = Model( inputs = my_input, outputs = [loss3_classifier_act] )
-        model3.summary()
-    else:
-        # Builds model
-        print('[INFO] Loading model from file...')
-        model3 = load_model( model_file )
-        model3.summary()
-    ### Check whether multi-gpu option was enabled
-    ### Careful, no hardware validation on number of GPUs
-    if (num_gpus>1):
-        model3 = multi_gpu_model( model3, gpus = num_gpus )
     # partition the data into training and testing splits using 20% of
     # the data for training and the remaining 80% for testing/validation
     (trainX, testX, trainY, testY) = train_test_split(data,
@@ -410,7 +429,7 @@ if __name__ == '__main__':
         print("[INFO] define early stop and auto save for network...")
         auto_save = ModelCheckpoint(model_file, monitor = 'val_accuracy', verbose = 0,
                                     save_best_only = True, save_weights_only=True,
-                                    mode='auto')
+                                    mode='auto', save_freq=10)
         # can use validation set loss or accuracy to stop early
         # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
         # patience was 50

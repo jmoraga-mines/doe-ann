@@ -17,7 +17,15 @@ from __future__ import print_function
 # import the necessary packages
 import argparse
 from imutils import paths
+import os
+# Source: https://stackoverflow.com/questions/38073432/how-to-suppress-verbose-tensorflow-logging
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+# https://www.tensorflow.org/api_docs/python/tf/autograph/set_verbosity
+os.environ["AUTOGRAPH_VERBOSITY"] = "0"
+
 import tensorflow as tf
+tf.get_logger().setLevel("WARNING")
+
 # from tensorflow import keras # not needed anymore
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from tensorflow.keras.layers import AveragePooling2D, Input, Concatenate
