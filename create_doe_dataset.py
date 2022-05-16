@@ -11,7 +11,6 @@
   Updated 2020-06-12
 
   @authors: Jim Moraga <jmoraga@mines.edu>
-  @authors: Ebubekir Demir <edemir@mines.edu>
 """
 
 import numpy as np
