@@ -2,15 +2,15 @@ import os
 os.environ['PYTHONHASHSEED']=str(1)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-#tif_file_name ='brady_ai_stack.grd'
-#image_channels = 7 # Was 9
-tif_file_name ='../doe-som/brady_som_output.grd'
-image_channels = 3
+tif_file_name ='brady_ai_stack.grd'
+image_channels = 7 # Was 9
+#tif_file_name ='../doe-som/brady_som_output.grd'
+#image_channels = 3
 print('File  : ', tif_file_name)
 print('Bands : ', image_channels)
 num_samples = 200000
 print('Samples : ', num_samples)
-kernel_pixels = 19
+kernel_pixels = 27
 print('Kernel  : ', kernel_pixels, ' pixels per side')
 my_patience = 5
 print('Patience: ', my_patience)

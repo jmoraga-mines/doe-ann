@@ -1,4 +1,5 @@
 import os
+os.environ['PYTHONHASHSEED']=str(1)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 #tif_file_name ='brady_ai_stack.grd'
@@ -7,7 +8,20 @@ tif_file_name ='../doe-som/brady_som_output.grd'
 image_channels = 3
 print('File  : ', tif_file_name)
 print('Bands : ', image_channels)
+num_samples = 200000
+print('Samples : ', num_samples)
+kernel_pixels = 19
+print('Kernel  : ', kernel_pixels, ' pixels per side')
+my_patience = 5
+print('Patience: ', my_patience)
 
+import tensorflow as tf
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+#from tensorflow.config import list_physical_devices
+#print("Num GPUs Available: ", len(list_physical_devices('GPU')))
+
+import gc
+import random
 from sklearn.preprocessing import LabelBinarizer
 
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
@@ -18,10 +32,7 @@ import numpy as np
 from tensorflow.keras.utils import to_categorical
 
 num_epochs = 150
-num_samples = 200000
-print('Samples : ', num_samples)
 BS=200
-kernel_pixels = 19
 batch_size = BS
 
 NUM_CLASSES = 2         # Default number of classes ("Geothermal", "Non-Geothermal")
@@ -312,23 +323,30 @@ from tensorflow.keras.regularizers import l2
 def jigsaw_m( input_net, first_layer = None ):
     conv1 = Conv2D(128, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
     jigsaw_t1_1x1 = Conv2D(256, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    jigsaw_t1_3x3_reduce = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    jigsaw_t1_3x3_reduce = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
     jigsaw_t1_3x3 = Conv2D(128, (3,3), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_3x3")(jigsaw_t1_3x3_reduce)
-    jigsaw_t1_5x5_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    jigsaw_t1_5x5_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
     jigsaw_t1_5x5 = Conv2D(128, (5,5), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_5x5")(jigsaw_t1_5x5_reduce)
-    jigsaw_t1_7x7_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    jigsaw_t1_7x7_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
     jigsaw_t1_7x7 = Conv2D(128, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_7x7")(jigsaw_t1_7x7_reduce)
-    jigsaw_t1_9x9_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    jigsaw_t1_9x9 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_9x9")(jigsaw_t1_9x9_reduce)
+    jigsaw_t1_9x9_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
+    jigsaw_t1_9x9 = Conv2D(64, (9,9), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_9x9")(jigsaw_t1_9x9_reduce)
+    #jigsaw_t1_11x11_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
+    #jigsaw_t1_11x11 = Conv2D(64, (11,11), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_11x11")(jigsaw_t1_11x11_reduce)
+    #jigsaw_t1_13x13_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
+    #jigsaw_t1_13x13 = Conv2D(64, (13,13), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_13x13")(jigsaw_t1_13x13_reduce)
     jigsaw_t1_pool = MaxPooling2D(pool_size=(3,3), strides = (1,1), padding='same')(conv1)
     jigsaw_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(jigsaw_t1_pool)
     if first_layer is None:
         jigsaw_t1_output = Concatenate(axis = -1)([jigsaw_t1_1x1, jigsaw_t1_3x3, jigsaw_t1_5x5,
-                                                      jigsaw_t1_7x7, jigsaw_t1_9x9, jigsaw_t1_pool_proj])
+                                                      jigsaw_t1_7x7, jigsaw_t1_9x9,
+                                                      #jigsaw_t1_11x11, jigsaw_t1_13x13,
+                                                      jigsaw_t1_pool_proj])
     else:
         jigsaw_t1_first = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(first_layer)
         jigsaw_t1_output = Concatenate(axis = -1)([jigsaw_t1_first, jigsaw_t1_1x1, jigsaw_t1_3x3,
                                                       jigsaw_t1_5x5, jigsaw_t1_7x7, jigsaw_t1_9x9,
+                                                      #jigsaw_t1_11x11, jigsaw_t1_13x13,
                                                       jigsaw_t1_pool_proj])
     return jigsaw_t1_output
 
@@ -360,9 +378,10 @@ loss3_classifier_act = jigsaw_m_end(jigsaw_01,
 # Builds model
 model3 = Model( inputs = my_input, outputs = [loss3_classifier_act] )
 #model3.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-#model3.summary()
+model3.summary()
 import keras
 from keras.wrappers.scikit_learn import KerasClassifier
+#from scikeras.wrappers import KerasClassifier # Can't install for some reason :(
 from sklearn.model_selection import cross_val_score
 import rasterio as rio
 from matplotlib import pyplot
@@ -380,7 +399,7 @@ for i, (train, test) in enumerate(cv):
     print("Size (train, test)", len(train), len(test))
     # print("test:", test)
     # print("trainY:", y[train])
-    model_2 = Model( inputs = my_input, outputs = [loss3_classifier_act] )
+    model_2 = tf.keras.models.clone_model(model3) # Model( inputs = my_input, outputs = [loss3_classifier_act] )
     model_2.compile(loss='binary_crossentropy', optimizer=Adadelta(), metrics=['accuracy'])
     #model3.summary()
 
@@ -394,11 +413,11 @@ for i, (train, test) in enumerate(cv):
     early_stop = EarlyStopping( monitor = 'loss',
                                 min_delta=0.01,
                                 mode='auto', verbose=1, # mode was 'min'
-                                patience=5)
+                                patience=my_patience)
     early_stop2= EarlyStopping( monitor = 'accuracy',
                                 min_delta=0.01,
                                 mode='auto', verbose=1, # mode was 'min'
-                                patience=5)
+                                patience=my_patience)
 
     print("Running Fold", i+1)
     # model_2.fit(X[train], y[train], epochs=num_epochs, batch_size=batch_size)
@@ -411,7 +430,18 @@ for i, (train, test) in enumerate(cv):
     cv_score.append(result[1])
     # we have to clear previous model to reset weights
     # currently keras doesn't have like model.reset()
+    del model_2
+    print("Keras Backend RESET")  # optional
     keras.backend.clear_session()
+    tf.keras.backend.clear_session()
+    gc.collect()
+    #tf.compat.v1.reset_default_graph()
+    #os.environ['PYTHONHASHSEED']=str(1)
+    #np.random.seed(1)
+    #random.seed(2)
+    #tf.random.set_seed(1)
+    #tf.compat.v1.set_random_seed(3)
+    #print("RANDOM SEEDS RESET")  # optional
 
 print("\nMean accuracy of the cross-validation: {}".format(np.mean(cv_score)))
 print("\nMax accuracy of the cross-validation: {}".format(np.max(cv_score)))

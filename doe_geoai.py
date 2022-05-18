@@ -155,15 +155,15 @@ class DataGenerator(Sequence):
 
 def jigsaw_m( input_net, first_layer = None ):
     conv1 = Conv2D(128, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
-    jigsaw_t1_1x1 = Conv2D(256, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    jigsaw_t1_3x3_reduce = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    jigsaw_t1_1x1 = Conv2D(256, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
+    jigsaw_t1_3x3_reduce = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
     jigsaw_t1_3x3 = Conv2D(128, (3,3), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_3x3")(jigsaw_t1_3x3_reduce)
-    jigsaw_t1_5x5_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    jigsaw_t1_5x5_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
     jigsaw_t1_5x5 = Conv2D(128, (5,5), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_5x5")(jigsaw_t1_5x5_reduce)
-    jigsaw_t1_7x7_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
+    jigsaw_t1_7x7_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
     jigsaw_t1_7x7 = Conv2D(128, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_7x7")(jigsaw_t1_7x7_reduce)
-    jigsaw_t1_9x9_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    jigsaw_t1_9x9 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_9x9")(jigsaw_t1_9x9_reduce)
+    jigsaw_t1_9x9_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
+    jigsaw_t1_9x9 = Conv2D(64, (9,9), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_9x9")(jigsaw_t1_9x9_reduce)
     jigsaw_t1_pool = MaxPooling2D(pool_size=(3,3), strides = (1,1), padding='same')(conv1)
     jigsaw_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(jigsaw_t1_pool)
     if first_layer is None:

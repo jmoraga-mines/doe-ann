@@ -2,10 +2,10 @@ import os
 os.environ['PYTHONHASHSEED']=str(1)
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-#tif_file_name ='brady_ai_stack.grd'
-#image_channels = 7 # Was 9
-tif_file_name ='../doe-som/brady_som_output.grd'
-image_channels = 3
+tif_file_name ='brady_ai_stack.grd'
+image_channels = 7 # Was 9
+#tif_file_name ='../doe-som/brady_som_output.grd'
+#image_channels = 3
 print('File  : ', tif_file_name)
 print('Bands : ', image_channels)
 num_samples = 200000
@@ -331,22 +331,22 @@ def jigsaw_m( input_net, first_layer = None ):
     jigsaw_t1_7x7 = Conv2D(128, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_7x7")(jigsaw_t1_7x7_reduce)
     jigsaw_t1_9x9_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
     jigsaw_t1_9x9 = Conv2D(64, (9,9), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_9x9")(jigsaw_t1_9x9_reduce)
-    #jigsaw_t1_11x11_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
-    #jigsaw_t1_11x11 = Conv2D(64, (11,11), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_11x11")(jigsaw_t1_11x11_reduce)
-    #jigsaw_t1_13x13_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
-    #jigsaw_t1_13x13 = Conv2D(64, (13,13), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_13x13")(jigsaw_t1_13x13_reduce)
+    jigsaw_t1_11x11_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
+    jigsaw_t1_11x11 = Conv2D(64, (11,11), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_11x11")(jigsaw_t1_11x11_reduce)
+    jigsaw_t1_13x13_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
+    jigsaw_t1_13x13 = Conv2D(64, (13,13), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_13x13")(jigsaw_t1_13x13_reduce)
     jigsaw_t1_pool = MaxPooling2D(pool_size=(3,3), strides = (1,1), padding='same')(conv1)
     jigsaw_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(jigsaw_t1_pool)
     if first_layer is None:
         jigsaw_t1_output = Concatenate(axis = -1)([jigsaw_t1_1x1, jigsaw_t1_3x3, jigsaw_t1_5x5,
                                                       jigsaw_t1_7x7, jigsaw_t1_9x9,
-                                                      #jigsaw_t1_11x11, jigsaw_t1_13x13,
+                                                      jigsaw_t1_11x11, jigsaw_t1_13x13,
                                                       jigsaw_t1_pool_proj])
     else:
         jigsaw_t1_first = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(first_layer)
         jigsaw_t1_output = Concatenate(axis = -1)([jigsaw_t1_first, jigsaw_t1_1x1, jigsaw_t1_3x3,
                                                       jigsaw_t1_5x5, jigsaw_t1_7x7, jigsaw_t1_9x9,
-                                                      #jigsaw_t1_11x11, jigsaw_t1_13x13,
+                                                      jigsaw_t1_11x11, jigsaw_t1_13x13,
                                                       jigsaw_t1_pool_proj])
     return jigsaw_t1_output
 
