@@ -18,7 +18,7 @@ import numpy as np
 from tensorflow.keras.utils import to_categorical
 
 num_epochs = 150
-num_samples = 100000
+num_samples = 200000
 print('Samples : ', num_samples)
 BS=200
 kernel_pixels = 19
@@ -394,7 +394,7 @@ for i, (train, test) in enumerate(cv):
     early_stop = EarlyStopping( monitor = 'loss',
                                 min_delta=0.01,
                                 mode='auto', verbose=1, # mode was 'min'
-                                patience=3)
+                                patience=5)
     early_stop2= EarlyStopping( monitor = 'accuracy',
                                 min_delta=0.01,
                                 mode='auto', verbose=1, # mode was 'min'
