@@ -32,6 +32,14 @@ if tf.__version__ >= "2.4.0":
     from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 else:
     from tensorflow.keras.utils import multi_gpu_model
+try:
+    from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
+except:
+    pass
+try:
+    from tensorflow.keras.utils import multi_gpu_model
+except:
+    pass
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -135,7 +143,7 @@ print('Set-up complete.')
 ''' Main program '''
 if __name__ == '__main__':
     ''' Main instructions '''
-    print('Parsing input...')
+    print('Parsing input arguments...')
     ap = argparse.ArgumentParser()
     ap.add_argument("-a", "--augment", required=False,
                     help="Augment images by rotating and flipping horizontally/vertically",
@@ -177,6 +185,7 @@ if __name__ == '__main__':
     ap.add_argument("-w", "--weights", required=False, help="path to input or output model weights",
                     default = None)
     args = vars(ap.parse_args())
+    print(args)
     augment_data = args["augment"]
     batch_size = args["batch_size"]
     image_channels = args["channels"]
@@ -312,7 +321,10 @@ if __name__ == '__main__':
     ### Check whether multi-gpu option was enabled
     ### Careful, no hardware validation on number of GPUs
     if (num_gpus>1):
-        model3 = multi_gpu_model( model3, gpus = num_gpus )
+        try:
+            model3 = multi_gpu_model( model3, gpus = num_gpus )
+        except:
+            pass
     ## initialize the model
     print("[INFO] compiling model...")
     print('SmallJigsaw: (depth, width, height, classes) = (%s, %s, %s, %s)' %
