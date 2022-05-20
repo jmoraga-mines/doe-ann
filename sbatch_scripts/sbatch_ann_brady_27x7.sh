@@ -1,9 +1,9 @@
 #!/bin/env bash
 #SBATCH --job-name=paper_brady_27x7        # Job name
-#SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
-#SBATCH --mail-user=jmoraga@mines.edu # Where to send mail      
+##SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
+##SBATCH --mail-user=jmoraga@mines.edu # Where to send mail      
 #SBATCH --ntasks=1                    # Run on a single CPU
-#SBATCH --gres=gpu:4        # We need a GPU for Tensorflow
+#SBATCH --gres=gpu #:4        # We need a GPU for Tensorflow
 
 # Don't use #SBATCH --gres=gpu        # We need a GPU for Tensorflow
 # Don't use #SBATCH -w, --nodelist=g005,c026,c028
@@ -44,10 +44,10 @@ then
 fi
 
 # Checks that the samples directory exists
-if [ -d "../doe-data/brady_samples_27x7d" ]
+if [ -f "brady_ai_stack.grd" ]
 then
    echo "Samples directory exists, running ANN training"
-   time(python doe_geoai.py -a -c 7 -d ../doe-data/brady_samples_27x7d -k 27 -b 200 -e 100 -l ../doe-data/brady_27x7d100.l -m ../doe-data/brady_27x7d100.h5 -g 4 -r)
+   time(python doe_geoai.py -a -c 7 -d brady_ai_stack.grd -k 27 -b 200 -e 100 -l ../doe-data/brady_27x7d100.13.l -m ../doe-data/brady_27x7d100.13.h5 -g 1 -s 200000 -i 13 -r)
 else
    echo "Samples directory *brady_samples_27x7d* does not exist, run data creator"
 fi
