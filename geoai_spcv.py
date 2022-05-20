@@ -148,6 +148,8 @@ if __name__ == '__main__':
                     help="Number of epochs to train)", default=EPOCHS)
     ap.add_argument("-g", "--gpus", required=False, type=int,
                     help="Number of GPUs to run in parallel", default=1)
+    ap.add_argument("-i", "--internal_size", required=False, type=int,
+                    help="Maximum size of interal kernels", default=9)
     ap.add_argument("-k", "--kernel_pixels", required=False,
                     help='Number of pixels by side in each image',
                     default=KERNEL_PIXELS, type=int)
@@ -179,6 +181,7 @@ if __name__ == '__main__':
     dataset_path = args["dataset"]
     num_epochs = args["epochs"]
     num_gpus = args["gpus"]
+    internal_size = args["internal_size"]
     kernel_pixels = args["kernel_pixels"]
     label_file = args["labelbin"]
     model_file = args["model"]
@@ -295,7 +298,7 @@ if __name__ == '__main__':
     if (reset_model or not model_exist):
         print('[INFO] Building model from scratch...')
         # Builds model
-        model3 = jigsaw.build_jigsaw( internal_size = 9, # Max internal kernel 9x9 or 13x13
+        model3 = jigsaw.build_jigsaw( internal_size = internal_size, # Max internal kernel 9x9 or 13x13
                                       num_classes = num_classes,
                                       image_dim = IMAGE_DIMS )
         model3.summary()
