@@ -26,6 +26,7 @@ import argparse
 from tqdm import tqdm
 import jigsaw
 from jigsaw import DataGenerator
+from jigsaw.rasterspcv import RasterSpCV
 
 if tf.__version__ == "2.4.0":
     from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
@@ -48,6 +49,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 from sklearn.metrics import roc_curve, auc
 from sklearn.cluster import MiniBatchKMeans
+from tensorflow.keras.utils import to_categorical
+
 
 matplotlib.use("Agg")
 DEFAULT_WEIGHTS_FILE_NAME = 'doe_cnn.weights'
@@ -215,26 +218,6 @@ if __name__ == '__main__':
     # initialize the data and labels
     data = []
     labels = []
-    ###
-    '''
-    Creates the network
-    '''
-    if (reset_model or not model_exist):
-        print('[INFO] Building model from scratch...')
-        # Builds model
-        model3 = jigsaw.build_jigsaw( internal_size = 9, # Max internal kernel 9x9 or 13x13
-                                      num_classes = num_classes,
-                                      image_dim = IMAGE_DIMS )
-        model3.summary()
-    else:
-        # Builds model
-        print('[INFO] Loading model from file...')
-        model3 = load_model( model_file )
-        model3.summary()
-    ### Check whether multi-gpu option was enabled
-    ### Careful, no hardware validation on number of GPUs
-    if (num_gpus>1):
-        model3 = multi_gpu_model( model3, gpus = num_gpus )
 
     ### Load data
     ## grab the image paths and randomly shuffle them
@@ -246,15 +229,34 @@ if __name__ == '__main__':
     else:
         random_state=None
     rSpCV = RasterSpCV(dataset_path, 
+                       num_channels=image_channels,
                        kernel_size=kernel_pixels,
                        sample=num_samples,
                        random_state=random_state,
                        verbose=2)
-    cv = rSpCV.SpatialCV_split()
+    cv = rSpCV.SpatialCV()
     print('Number of images:', len(rSpCV))
     # scale the raw pixel intensities to the range [0, 1]
-    data = rSpCV.X()
+    # data = rSpCV.X()
+    print("Loading images...")
+    # data = data[np.arange(len(data))]
+    data = []
+    #### for imagePath in imagePaths:
+    for i in tqdm(range(len(rSpCV)), desc="Loading...",
+                          ascii=False, ncols=75):
+        # Reads image file from dataset
+        # Our Model uses (width, height, depth )
+        data.append(rSpCV[i])
+    print('Read images:', i+1)
+    # print('Read images:', len(data))
+    # scale the raw pixel intensities to the range [0, 1]
+    data = np.asarray(data, dtype=np.float64)
+
     labels = rSpCV.y()
+    print("Loaded:", type(data), ". shape: ", data.shape)
+    print("[INFO] data matrix: {:.2f}MB".format(
+        data.nbytes / (1024 * 1024.0)))
+
     # binarize the labels
     lb = LabelBinarizer()
     labels_lb = lb.fit_transform(labels)
@@ -283,6 +285,27 @@ if __name__ == '__main__':
     print('creating generator with trainX, trainY of shapes: (%s, %s)' %
             (trainX.shape, trainY.shape)
             )
+
+    ###
+    '''
+    Creates the network
+    '''
+    if (reset_model or not model_exist):
+        print('[INFO] Building model from scratch...')
+        # Builds model
+        model3 = jigsaw.build_jigsaw( internal_size = 9, # Max internal kernel 9x9 or 13x13
+                                      num_classes = num_classes,
+                                      image_dim = IMAGE_DIMS )
+        model3.summary()
+    else:
+        # Builds model
+        print('[INFO] Loading model from file...')
+        model3 = load_model( model_file )
+        model3.summary()
+    ### Check whether multi-gpu option was enabled
+    ### Careful, no hardware validation on number of GPUs
+    if (num_gpus>1):
+        model3 = multi_gpu_model( model3, gpus = num_gpus )
     ## initialize the model
     print("[INFO] compiling model...")
     print('SmallJigsaw: (depth, width, height, classes) = (%s, %s, %s, %s)' %
