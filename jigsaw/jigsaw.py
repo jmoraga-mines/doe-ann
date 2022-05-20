@@ -6,6 +6,7 @@ from tensorflow.keras.layers import Activation, Flatten, Dropout, Dense
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.optimizers import Adadelta #, Adam, Nadam, Adagrad, Adamax, SGD
 import numpy as np
+from skimage.transform import rotate
 
 
 # Helper class, generates data for keras

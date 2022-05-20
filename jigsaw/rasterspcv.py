@@ -6,6 +6,7 @@ import pandas as pd
 import geopandas as gpd
 import rasterio as rio
 import random
+from skimage.transform import rotate
 
 
 class Kernel3D:
