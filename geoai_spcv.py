@@ -52,6 +52,8 @@ from sklearn.cluster import MiniBatchKMeans
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.optimizers import Adadelta #, Adam, Nadam, Adagrad, Adamax, SGD
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
+from tensorflow.keras.models import load_model
+
 
 
 matplotlib.use("Agg")
@@ -278,9 +280,9 @@ if __name__ == '__main__':
     # partition the data into training and testing splits using 20% of
     # the data for training and the remaining 80% for testing/validation
     (trainX, testX, trainY, testY) = train_test_split(data,
-        y_binary, test_size=0.8, random_state=42)
+        y_binary, test_size=0.8, random_state=42) # Was 0.8
     (validateX, testX, validateY, testY) = train_test_split(testX, testY,
-            test_size=0.75, random_state=42)
+            test_size=0.75, random_state=42) # was 0.75
     params = {'dim':(kernel_pixels,kernel_pixels), 'batch_size': batch_size,
             'n_classes': num_classes,
             'n_channels': image_channels,
