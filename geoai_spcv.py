@@ -17,35 +17,20 @@ import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 # https://www.tensorflow.org/api_docs/python/tf/autograph/set_verbosity
 os.environ["AUTOGRAPH_VERBOSITY"] = "0"
-
 import tensorflow as tf
 tf.get_logger().setLevel("WARNING")
 
 # import the necessary packages
 import argparse
 # import keras
-from imutils import paths
 from tqdm import tqdm
-#import keras
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
-from tensorflow.keras.layers import AveragePooling2D, Input, Concatenate
-# from tensorflow.keras.layers.convolutional import Conv2D, MaxPooling2D
-from tensorflow.keras.layers import Conv2D, MaxPooling2D
-# from tensorflow.keras.layers.core import Activation, Flatten, Dropout, Dense
-from tensorflow.keras.layers import Activation, Flatten, Dropout, Dense
-from tensorflow.keras.models import Model
-from tensorflow.keras.models import load_model
-from tensorflow.keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.utils import to_categorical
+import jigsaw
+from jigsaw import DataGenerator
+
 if tf.__version__ == "2.4.0":
     from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 else:
     from tensorflow.keras.utils import multi_gpu_model
-# By Jim: it was...
-#    from tensorflow.keras.utils import multi_gpu_model
-from tensorflow.keras.utils import Sequence
-
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -73,9 +58,9 @@ INIT_LR = 5e-1          # Default Loss Rate
 INIT_DECAY = 1e-3       # Default Decay
 CHANNELS = 5            # This will be redefined based on parameters
 KERNEL_PIXELS = 17      # Default pixels by side on each tile
-NUM_CLASSES = 2         # Default number of classes ("Geothermal", "Non-Geothermal")
 BS = 32
 EPOCHS = 500
+NUM_CLASSES = 2
 
 class2code = {'none': 0,
               'Non-geothemal':1,
@@ -90,290 +75,14 @@ except NameError:
     raw_input = input  # Python 3
 
 ''' Class definitions '''
-class Kernel3D:
-    def __init__(self, rows=3, cols=3, shape='rect', radius=None, no_value=np.NaN):
-        if shape == 'circle':
-            self.rows = 2*radius+1
-            self.cols = 2*radius+1
-            self.mask = self.round_mask(radius)
-            self.row_buffer = radius
-            self.col_buffer = radius
-        else:
-            self.rows = rows
-            self.cols = cols
-            self.mask = np.ones((rows, cols))
-            self.row_buffer = int((rows-1)/2)
-            self.col_buffer = int((cols-1)/2)
-        self.mask = self.mask[np.newaxis, :, :]
-        self.no_value = no_value
-        assert((rows%2) == 1)
-        assert((cols%2) == 1)
-
-    def round_mask(self, radius):
-        diameter = 2*radius+1
-        mask = np.empty((diameter, diameter,))
-        mask[:] = self.no_value
-        sq_radius = radius**2
-        for i in range(diameter):
-            for j in range(diameter):
-                if ((i-radius)**2+(j-radius)**2) <= sq_radius:
-                    mask[i, j] = 1
-        return mask
-
-    def getSubset(self, matrix, row, column):
-        m_rows = matrix.shape[1]
-        assert((row >= self.row_buffer) and (row < (m_rows-self.row_buffer)))
-        m_cols = matrix.shape[2]
-        assert((column >= self.col_buffer) and (column < (m_cols-self.col_buffer)))
-        row_start = row-self.row_buffer
-        row_end = row+self.row_buffer
-        column_start = column-self.col_buffer
-        column_end = column+self.col_buffer
-        small_matrix = matrix[:, row_start:row_end+1, column_start:column_end+1]
-        return small_matrix*self.mask
-
-    def getPercentage(self, matrix, row, column):
-        test_matrix = self.getSubset(matrix, column, row)
-        return test_matrix.mean()
-class GeoTiffSlicer(object):
-    def __init__(self, land_matrix, kernel_rows=None, kernel_cols=None, 
-                 kernel_shape='rect', kernel_radius=0, no_value = np.NaN):
-        # (d, h, w) input tiff from rasterio
-        if kernel_cols is None:
-            kernel_cols = kernel_rows
-        assert(kernel_cols < land_matrix.shape[2])
-        assert(kernel_rows < land_matrix.shape[1])
-        assert((kernel_shape == 'rect') or (kernel_shape == 'circle'))
-        assert(kernel_radius>=0)
-        if kernel_shape == 'rect':
-            self.kernel = Kernel3D(rows=kernel_rows, cols=kernel_cols)
-        else:
-            self.kernel = Kernel3D(radius=kernel_radius, 
-                                   shape=kernel_shape, 
-                                   no_value=no_value)
-            kernel_rows = kernel_cols = 2*kernel_radius+1
-        self.kernel_rows = kernel_rows
-        self.kernel_cols = kernel_cols
-        self.land_matrix = land_matrix
-        self.land_matrix_channels, self.land_matrix_cols, self.land_matrix_rows = land_matrix.shape
-        self.land_matrix_cols = land_matrix.shape[2]
-        self.land_matrix_rows = land_matrix.shape[1]
-        self.land_matrix_channels = land_matrix.shape[0]
-        self.small_row_min = self.kernel.row_buffer
-        self.small_row_max = self.land_matrix_rows - self.small_row_min
-        self.small_column_min = self.kernel.col_buffer
-        self.small_column_max = self.land_matrix_cols - self.small_column_min
-
-    def apply_mask(self, row, column):
-        return self.kernel.getSubset(self.land_matrix, row=row, column=column)
-
-    def calculate(self):
-        m1 = np.zeros_like(self.land_matrix, dtype='float')
-        for j in range(self.small_row_min, self.small_row_max):
-            for i in range(self.small_column_min, self.small_column_max):
-                m1[i, j] = self.kernel.getPercentage(self.land_matrix, column=i, row=j)
-        return m1
-
-
-class RasterSpCV(object):
-  def __init__(self, base_image, kernel_size,
-               no_value = np.NaN, verbose = 0,
-               partitions = 5,
-               sample = None, random_state = None):
-    assert isinstance(base_image, rasterio.io.DatasetReader), f"Wrong type, received {type(base_image)}"
-    try:
-      c, h, w = base_image.count, base_image.height, base_image.width
-    except:
-      c=h=w=0
-    assert (c>1) and (h>kernel_size*2) and  (w>kernel_size*2)
-    assert ((isinstance(sample, type(None))) or (isinstance(sample, int))), f"Wrong type, received {type(sample)}"
-    assert ((kernel_size>0) and ((kernel_size%2)==1))
-    self.kernel_size = kernel_size
-    self.verbose = verbose
-    xmin, ymax = np.around(base_image.xy(0.00, 0.00), 8)  # millimeter accuracy for longitude
-    xmax, ymin = np.around(base_image.xy(h-1, w-1), 8)  # millimeter accuracy
-    tif_x = np.linspace(xmin, xmax, w)
-    tif_y = np.linspace(ymax, ymin, h) # coordinates are top to bottom
-    tif_col = np.arange(w)
-    tif_row = np.arange(h)#[::-1] # This will match numpy array location
-    xs, ys = np.meshgrid(tif_x, tif_y)
-    cs, rs = np.meshgrid(tif_col, tif_row)
-    zs = base_image.read(1) # First band contains categories
-    if(verbose>0):
-      zs_u = len(np.unique(zs))
-      if(zs_u<2):
-        print("Warning, ", zs_u, " output categories is less than 2")
-    tif_mask = base_image.read_masks(1) > 0
-    # Just keep valid points (non-NaN)
-    xs, ys = xs[tif_mask], ys[tif_mask]
-    cs, rs, zs = cs[tif_mask], rs[tif_mask], zs[tif_mask]
-    data = {'Column': pd.Series(cs.ravel()),
-            'Row': pd.Series(rs.ravel()),
-            'x': pd.Series(xs.ravel()),
-            'y': pd.Series(ys.ravel()),
-            'z': pd.Series(zs.ravel())}
-    df = pd.DataFrame(data=data)
-    geometry = gpd.points_from_xy(df.x, df.y)
-    tif_crs = base_image.crs
-    gdf = gpd.GeoDataFrame(df, crs=tif_crs, geometry=geometry) # [['z', 'Column', 'Row']]
-    if(not isinstance(sample, type(None))):
-      gdf=gdf.sample(n = sample, random_state=random_state)
-    if(verbose>0):
-      print("Splitting input layer data with MiniBatchKMeans")
-    km_spcv = MiniBatchKMeans(n_clusters = partitions,
-                              random_state=random_state)
-    tif_folding = gdf.copy()
-    tif_folding['Fold'] = -1
-    km_spcv_model = km_spcv.fit(tif_folding[['x', 'y']])
-    labels = km_spcv_model.labels_
-    unique_labels, counts = np.unique(labels, return_counts=True)
-    if(verbose>0):
-      print("Counts:", counts)
-      print("Labels: #", len(labels))
-      print("Partitions:", unique_labels)
-    assert (len(unique_labels)==partitions)
-    tif_folding['Fold'] = (labels)
-    self.folding = tif_folding
-    self.partitions = unique_labels
-    _land_matrix = base_image.read()
-    _land_matrix = _land_matrix[1:, :, :]
-    _land_matrix = np.pad(_land_matrix,
-                          pad_width=((0,0),
-                                     (kernel_size, kernel_size),
-                                     (kernel_size, kernel_size)),
-                          mode='symmetric')
-    if(verbose>0):
-      print("Shape of new tiff:", _land_matrix.shape)
-    self.slicer = GeoTiffSlicer(land_matrix=_land_matrix,
-                                kernel_rows=kernel_size)
-
-  def SpatialCV_split(self):
-    for fold_index in self.partitions:
-      if(self.verbose>0):
-        print("Fold:", fold_index)
-      test_indices = np.flatnonzero(self.folding.Fold==fold_index)
-      train_indices = np.flatnonzero(self.folding.Fold!=fold_index)
-      yield test_indices, train_indices
-
-  def y(self):
-    return self.folding.z.copy()
-  def X(self):
-    return self
-  def __getitem__(self, key):
-    if(self.verbose>0):
-      print("Query with key:", key)
-    r, c = self.folding.iloc[key].Row, self.folding.iloc[key].Column
-    r, c = r+self.kernel_size, c+self.kernel_size
-    a_slice = self.slicer.apply_mask(row=r, column=c)
-    return a_slice
 
 
 class doe_ann_object(object):
     def __init__(self, root_dir):
         self.root_dir = root_dir
 
-# when using import from keras
-# class DataGenerator(keras.utils.Sequence):
-class DataGenerator(Sequence):
-    'Generates data for Keras'
-    def __init__(self, data_set, labels, batch_size=BS,
-            dim=(KERNEL_PIXELS,KERNEL_PIXELS,CHANNELS),
-            n_channels=CHANNELS, n_classes=NUM_CLASSES,
-            shuffle=True, augment_data=False):
-        'Initialization'
-        self.dim = dim
-        self.batch_size = batch_size
-        self.labels = labels
-        self.data_set = data_set
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-        self.shuffle = shuffle
-        self.augment_data = augment_data
-        self.on_epoch_end()
 
-    def __len__(self):
-        'Denotes the number of batches per epoch'
-        return int(np.floor(len(self.data_set) / self.batch_size))
-
-    def __getitem__(self, index):
-        'Generate one batch of data'
-        # Generate indexes of the batch
-        indexes = self.indexes[index*self.batch_size:(index+1)*self.batch_size]
-        # Generate data
-        X, y = self.__data_generation(indexes)
-
-        return X, y
-
-    def on_epoch_end(self):
-        'Updates indexes after each epoch'
-        self.indexes = np.arange(len(self.data_set))
-        if self.shuffle == True:
-            np.random.shuffle(self.indexes)
-
-    def __data_generation(self, list_IDs_temp):
-        'Generates data containing batch_size samples' # X : (n_samples, *dim, n_channels)
-        # Initialization
-        X = np.empty((self.batch_size, *self.dim, self.n_channels))
-        y = np.empty((self.batch_size, self.n_classes), dtype=int)
-        # Generate data
-        for i, ID in enumerate(list_IDs_temp):
-            # Store sample
-            image_raw = self.data_set[ID]
-            if self.augment_data:
-                if np.random.randint(1):
-                    image_raw = np.rot90( image_raw, 2 )
-                if np.random.randint(1):
-                    image_raw = np.fliplr( image_raw )
-                if np.random.randint(1):
-                    image_raw = np.flipud( image_raw )
-            X[i,] = image_raw
-            # Store class
-            y[i] = self.labels[ID]
-        return X, y
-
-
-def jigsaw_m( input_net, first_layer = None ):
-    conv1 = Conv2D(128, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(input_net)
-    jigsaw_t1_1x1 = Conv2D(256, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    jigsaw_t1_3x3_reduce = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    jigsaw_t1_3x3 = Conv2D(128, (3,3), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_3x3")(jigsaw_t1_3x3_reduce)
-    jigsaw_t1_5x5_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    jigsaw_t1_5x5 = Conv2D(128, (5,5), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_5x5")(jigsaw_t1_5x5_reduce)
-    jigsaw_t1_7x7_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    jigsaw_t1_7x7 = Conv2D(128, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_7x7")(jigsaw_t1_7x7_reduce)
-    jigsaw_t1_9x9_reduce = Conv2D(16, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(conv1)
-    jigsaw_t1_9x9 = Conv2D(64, (7,7), padding='same', activation = 'relu', kernel_regularizer = l2(0.002), name="i_9x9")(jigsaw_t1_9x9_reduce)
-    jigsaw_t1_pool = MaxPooling2D(pool_size=(3,3), strides = (1,1), padding='same')(conv1)
-    jigsaw_t1_pool_proj = Conv2D(32, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(jigsaw_t1_pool)
-    if first_layer is None:
-        jigsaw_t1_output = Concatenate(axis = -1)([jigsaw_t1_1x1, jigsaw_t1_3x3, jigsaw_t1_5x5,
-                                                      jigsaw_t1_7x7, jigsaw_t1_9x9, jigsaw_t1_pool_proj])
-    else:
-        jigsaw_t1_first = Conv2D(96, (1,1), padding='same', activation = 'relu', kernel_regularizer = l2(0.002))(first_layer)
-        jigsaw_t1_output = Concatenate(axis = -1)([jigsaw_t1_first, jigsaw_t1_1x1, jigsaw_t1_3x3,
-                                                      jigsaw_t1_5x5, jigsaw_t1_7x7, jigsaw_t1_9x9, 
-                                                      jigsaw_t1_pool_proj])
-    return jigsaw_t1_output
-
-def jigsaw_m_end( input_net, num_classes = NUM_CLASSES, first_layer = None ):
-    avg_pooling = AveragePooling2D(pool_size=(3,3), strides=(1,1), name='avg_pooling')(input_net)
-    flat = Flatten()(avg_pooling)
-    flat = Dense(16, kernel_regularizer=l2(0.002))(flat)
-    flat = Dropout(0.4)(flat)
-    if first_layer is not None:
-        input_pixel = Flatten()(first_layer)
-        input_pixel = Dense(16, kernel_regularizer=l2(0.002))(input_pixel)
-        input_pixel = Dropout(0.2)(input_pixel)
-        input_pixel = Dense(16, kernel_regularizer=l2(0.002))(input_pixel)
-        input_pixel = Dropout(0.2)(input_pixel)
-        flat = Concatenate(axis = -1)([input_pixel, flat])
-    flat = Dense(32, kernel_regularizer=l2(0.002))(flat)
-    avg_pooling = Dropout(0.4)(flat)
-    loss3_classifier = Dense(num_classes, kernel_regularizer=l2(0.002))(avg_pooling)
-    loss3_classifier_act = Activation('softmax', name='prob')(loss3_classifier)
-    return loss3_classifier_act
-
-
+''' Function definitions '''
 def ROC_curve_calc( testY, pre_y2, class_num, output_file_header ):
     '''
     Calculate other stats
@@ -422,14 +131,14 @@ if __name__ == '__main__':
     print('Parsing input...')
     ap = argparse.ArgumentParser()
     ap.add_argument("-a", "--augment", required=False,
-                    help="Augment images by flippipng horizontally, vertically and diagonally",
+                    help="Augment images by rotating and flipping horizontally/vertically",
                     dest='augment', action = 'store_true', default = False)
     ap.add_argument("-b", "--batch_size", required=False,
                     help="Defines batch size", default = BS, type=int)
     ap.add_argument("-c", "--channels", required=False, help='Number of channels in each image',
                     default=CHANNELS, type=int)
     ap.add_argument("-d", "--dataset", required=True,
-                    help="path to input dataset (i.e., directory of images)")
+                    help="path to input dataset (i.e., image file name)")
     ap.add_argument("-e", "--epochs", required=False, type=int,
                     help="Number of epochs to train)", default=EPOCHS)
     ap.add_argument("-g", "--gpus", required=False, type=int,
@@ -448,6 +157,8 @@ if __name__ == '__main__':
                     dest='reset', action = 'store_true', default = False)
     ap.add_argument("-o", "--output_curves", required=False, help="Starting file name for ROC curves",
                     default = None)
+    ap.add_argument("-s", "--num_samples", required=False, help='Number of samples to use',
+                    default=100, type=int)
     ap.add_argument("-t", "--true_random", required=False,
                     help="Ensure true random shuffling of training and test sets",
                     dest='true_random', action = 'store_true', default = False)
@@ -469,6 +180,7 @@ if __name__ == '__main__':
     num_classes = args["num_classes"]
     plot_file = args["plot"]
     reset_model = args["reset"]
+    num_samples = args["num_samples"]
     true_random = args["true_random"]
     validate_only = args["validate"]
     weights_file = args["weights"]
@@ -509,15 +221,10 @@ if __name__ == '__main__':
     '''
     if (reset_model or not model_exist):
         print('[INFO] Building model from scratch...')
-        # my_input = Input( shape=IMAGE_DIMS, batch_shape=BATCH_DIMS )
-        my_input = Input( shape=IMAGE_DIMS )
-        # One jigsaw module(s)
-        jigsaw_01 = jigsaw_m( my_input )
-        # Attaches end to jigsaw modules, returns class within num_classes
-        loss3_classifier_act = jigsaw_m_end( jigsaw_01,
-                num_classes = num_classes, first_layer = my_input ) # testing num_classes
         # Builds model
-        model3 = Model( inputs = my_input, outputs = [loss3_classifier_act] )
+        model3 = jigsaw.build_jigsaw( internal_size = 9, # Max internal kernel 9x9 or 13x13
+                                      num_classes = num_classes,
+                                      image_dim = IMAGE_DIMS )
         model3.summary()
     else:
         # Builds model
@@ -532,31 +239,22 @@ if __name__ == '__main__':
     ### Load data
     ## grab the image paths and randomly shuffle them
     print("[INFO] loading images...")
-    imagePaths = sorted(list(paths.list_files(dataset_path)))
-    print('Number of images:', len(imagePaths))
     # Ensure 'random' numbers are not too random to compare networks
     if (not true_random):
         random.seed(42)
-    random.shuffle(imagePaths)
-    ## loop over the input images
-    img_count = 0
-    #### for imagePath in imagePaths:
-    for imagePath in tqdm((imagePaths), desc="Loading...",
-                          ascii=False, ncols=75):
-        # Reads image file from dataset
-        # image = np.load(imagePath)
-        # Our Model uses (width, height, depth )
-        data.append(np.load(imagePath))
-        # Gets label from subdirectory name and stores it
-        # label = imagePath.split(os.path.sep)[-2]
-        labels.append(imagePath.split(os.path.sep)[-2])
-    print('Read images:', len(data))
+        random_state=42
+    else:
+        random_state=None
+    rSpCV = RasterSpCV(dataset_path, 
+                       kernel_size=kernel_pixels,
+                       sample=num_samples,
+                       random_state=random_state,
+                       verbose=2)
+    cv = rSpCV.SpatialCV_split()
+    print('Number of images:', len(rSpCV))
     # scale the raw pixel intensities to the range [0, 1]
-    data = np.asarray(data, dtype=np.float64)
-    data = np.nan_to_num(data)
-    labels = np.array(labels)
-    print("[INFO] data matrix: {:.2f}MB".format(
-        data.nbytes / (1024 * 1024.0)))
+    data = rSpCV.X()
+    labels = rSpCV.y()
     # binarize the labels
     lb = LabelBinarizer()
     labels_lb = lb.fit_transform(labels)
