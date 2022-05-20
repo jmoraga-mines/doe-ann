@@ -329,9 +329,9 @@ if __name__ == '__main__':
         model3.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")
-        auto_save = ModelCheckpoint(model_file, monitor = 'loss', verbose = 0, # vas 'val_accuracy'
+        auto_save = ModelCheckpoint(model_file, monitor = 'accuracy', verbose = 0, # vas 'val_accuracy'
                                     save_best_only = True, save_weights_only=True,
-                                    mode='auto', save_freq=10)
+                                    mode='auto', save_freq=100)
         # can use validation set loss or accuracy to stop early
         # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
         # patience was 50
