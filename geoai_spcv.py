@@ -28,7 +28,7 @@ import jigsaw
 from jigsaw import DataGenerator
 from jigsaw.rasterspcv import RasterSpCV
 
-if tf.__version__ == "2.4.0":
+if tf.__version__ >= "2.4.0":
     from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
 else:
     from tensorflow.keras.utils import multi_gpu_model
@@ -50,6 +50,8 @@ from sklearn.metrics import classification_report, confusion_matrix, accuracy_sc
 from sklearn.metrics import roc_curve, auc
 from sklearn.cluster import MiniBatchKMeans
 from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.optimizers import Adadelta #, Adam, Nadam, Adagrad, Adamax, SGD
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
 
 matplotlib.use("Agg")
@@ -327,7 +329,7 @@ if __name__ == '__main__':
         model3.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")
-        auto_save = ModelCheckpoint(model_file, monitor = 'val_accuracy', verbose = 0,
+        auto_save = ModelCheckpoint(model_file, monitor = 'loss', verbose = 0, # vas 'val_accuracy'
                                     save_best_only = True, save_weights_only=True,
                                     mode='auto', save_freq=10)
         # can use validation set loss or accuracy to stop early
