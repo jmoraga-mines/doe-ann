@@ -182,7 +182,7 @@ class RasterSpCV(BaseCrossValidator, list, ABC):
                                     kernel_rows=kernel_size)
         self.shape = (len(self.folding.index), kernel_size, kernel_size, c-1)
         
-    def RepeatedCV(self, n_repeats=2):
+    def RepeatedSpCV(self, n_repeats=2):
         for i in range(n_repeats):
             for fold_index in self.partitions:
                 if(self.verbose>1):
@@ -194,7 +194,7 @@ class RasterSpCV(BaseCrossValidator, list, ABC):
                 yield (train_indices), (test_indices)
 
 
-    def SpatialCV_split(self):
+    def SpatialCV(self):
         for fold_index in self.partitions:
             if(self.verbose>1):
                 print("Fold:", fold_index)

@@ -5,6 +5,7 @@ from tensorflow.keras.layers import Conv2D, AveragePooling2D, MaxPooling2D
 from tensorflow.keras.layers import Activation, Flatten, Dropout, Dense
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.optimizers import Adadelta #, Adam, Nadam, Adagrad, Adamax, SGD
+import numpy as np
 
 
 # Helper class, generates data for keras
@@ -20,7 +21,7 @@ class DataGenerator(Sequence):
         self.labels = labels
         self.data_set = data_set
         self.n_channels = n_channels
-        assert (n_channels > dim.shape[2]), f"Number of channels ({n_channels}) do not match image definition"
+        #assert (n_channels > dim.shape[2]), f"Number of channels ({n_channels}) do not match image definition"
         self.n_classes = n_classes
         self.shuffle = shuffle
         self.augment_data = augment_data
