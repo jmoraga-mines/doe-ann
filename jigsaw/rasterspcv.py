@@ -145,7 +145,12 @@ class RasterSpCV(BaseCrossValidator, list, ABC):
         df = pd.DataFrame(data=data)
         df = df.dropna()
         if(not isinstance(sample, type(None))):
-            df=df.sample(n = sample, random_state=random_state)
+            df_0 = df[df.z==0]
+            df_1 = df[df.z==1]
+            df_0=df_0.sample(n = sample, random_state=random_state)
+            df_1=df_1.sample(n = sample)
+            df = pd.concat([df_0,df_1], sort=False)
+            # df=df.sample(n = sample, random_state=random_state)
         if(verbose>1):
             print("Transforming coordinates to (x, y)")
         geometry = gpd.points_from_xy(df.x, df.y)

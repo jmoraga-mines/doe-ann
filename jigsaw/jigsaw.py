@@ -1,5 +1,5 @@
 from tensorflow.keras.utils import Sequence
-from tensorflow.keras.models import Model
+from tensorflow.keras.models import Model, Sequential
 from tensorflow.keras.layers import Input, Concatenate
 from tensorflow.keras.layers import Conv2D, AveragePooling2D, MaxPooling2D
 from tensorflow.keras.layers import Activation, Flatten, Dropout, Dense
@@ -157,6 +157,8 @@ def build_jigsaw(internal_size=13, num_classes=2, image_dim = (19, 19, 7), verbo
                                     num_classes = num_classes,
                                     first_layer = my_input ) # testing num_classes
     model3 = Model( inputs = my_input, outputs = loss3_classifier_act )
+    #model3 = Sequential()
+    #model3 = model3.add( loss3_classifier_act )
     model3.compile(loss='binary_crossentropy', optimizer=Adadelta(), metrics=['accuracy'])
     return model3
 
