@@ -26,7 +26,7 @@ Create a directory structure on a base directory, that includes the Python scrip
 
 
 ## Map the model results using any other input file
-**python doe_ann_map.py -i ../doe-som/brady_som_output.gri -k 19 -m tmp/doe_19x3d200b.h5 -l tmp/doe_19x3d200b.l**
+**python doe_ann_map.py -i ../doe-som/brady_som_output.gri -k 19 -m tmp/doe_19x3d200b.h5 -l tmp/doe_19x3d200b.l -p tmp/out.npy -o out.grd -c 3**
 
 * Creates a map using as basis the raster from image (-i) brady_som_output.gri.
 * The kernel to us is size 19x19 (-k 19)
