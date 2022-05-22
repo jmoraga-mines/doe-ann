@@ -316,7 +316,11 @@ if __name__ == '__main__':
     else:
         # Builds model
         print('[INFO] Loading model from file...')
+        model3 = jigsaw.build_jigsaw( internal_size = internal_size, # Max internal kernel 9x9 or 13x13
+                                      num_classes = num_classes,
+                                      image_dim = IMAGE_DIMS )
         model3 = load_model( model_file )
+        # model3.load_weights( model_file )
         model3.summary()
     ### Check whether multi-gpu option was enabled
     ### Careful, no hardware validation on number of GPUs
@@ -347,8 +351,8 @@ if __name__ == '__main__':
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")
         auto_save = ModelCheckpoint(model_file, monitor = 'accuracy', verbose = 0, # vas 'val_accuracy'
-                                    save_best_only = True, save_weights_only=True,
-                                    mode='auto', save_freq=100)
+                                    save_best_only = True, save_weights_only=False,
+                                    mode='auto', save_freq=200)
         # can use validation set loss or accuracy to stop early
         # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
         # patience was 50

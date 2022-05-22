@@ -36,7 +36,16 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam, Nadam, Adadelta, Adagrad, Adamax, SGD
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.utils import multi_gpu_model
+try:
+    from tensorflow.python.keras.utils.multi_gpu_utils import multi_gpu_model
+except:
+    pass
+try:
+    from tensorflow.keras.utils import multi_gpu_model
+except:
+    pass
+
+
 # Progress bar
 from tqdm import tqdm
 # Matlab plotting library for charts
