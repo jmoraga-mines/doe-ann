@@ -9,9 +9,14 @@ sb_samples
 *.pyc
 simple_test.py
 *.png
+*.zip
+*.gr?
+*.pickle
 *_samples_*/
 tmp/
 old_files/
 old_logs/
 py_backup/
 results/
+new_logs/
+new_maps/

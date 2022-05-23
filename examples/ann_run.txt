@@ -1,0 +1,14 @@
+  392   python doe_ann3.py -a -d brady_samples_27x6b -l tmp/doe_27x6b500.l -m tmp/doe_27x6b500.h5 -k 27 -b 50 -e 500 -c 6 -r
+  393   python doe_ann3.py -a -d brady_slope_27x6b -l tmp/doe_27x6b500.l -m tmp/doe_27x6b500.h5 -k 27 -b 50 -e 500 -c 6 -r
+  394   python doe_ann3.py -a -d brady_slope_27x6d -l tmp/doe_27x6d500.l -m tmp/doe_27x6d500.h5 -k 27 -b 20 -e 100 -c 6 -r
+  425  python doe_ann3.py -a -d brady_slope_27x6d -l tmp/doe_27x6d500.l -m tmp/doe_27x6d500.h5 -k 27 -b 20 -e 100 -c 6 -r
+  427  python doe_ann3.py -a -d brady_slope_27x6d -l tmp/doe_27x6d500.l -m tmp/doe_27x6d500.h5 -k 27 -b 20 -e 100 -c 6 -r
+  478  time (python doe_ann3.py -a -d brady_slope_27x6d -l tmp/doe_27x6d500.l -m tmp/doe_27x6d500.h5 -k 27 -b 20 -e 100 -c 6 -r)
+  479  time python doe_ann3.py -a -d brady_slope_27x6d -l tmp/doe_27x6d500.l -m tmp/doe_27x6d500.h5 -k 27 -b 20 -e 100 -c 6 -r
+  481  time (python doe_ann3.py -a -d brady_slope_27x6d -l tmp/doe_27x6d500.l -m tmp/doe_27x6d500.h5 -k 27 -b 20 -e 100 -c 6 -r)
+  491  time (python doe_ann3.py -a -d brady_drain_27x7b -l tmp/doe_brady_drain_27x7b100.l -m tmp/doe_brady_drain_27x7b100.h5 -k 27 -b 20 -e 100 -c 7 -r)
+  492  time (python doe_ann3.py -a -d brady_drain_27x7d -l tmp/doe_brady_drain_27x7d500.l -m tmp/doe_brady_drain_27x7d500.h5 -k 27 -b 20 -e 500 -c 7 -r)
+  502  time (python doe_ann3.py -a -d brady_drain_27x6d -l tmp/doe_brady_drain_27x6d500.l -m tmp/doe_brady_drain_27x6d500.h5 -k 27 -b 20 -e 500 -c 6 -r)
+  503  time (python doe_ann3.py -a -d brady_drain_27x6d -l tmp/doe_brady_drain_27x6d500.l -m tmp/doe_brady_drain_27x6d500.h5 -k 27 -b 20 -e 500 -c 5 -r)
+  504  time (python doe_ann3.py -a -d brady_drain_27x6d -l tmp/doe_brady_drain_27x6d500.l -m tmp/doe_brady_drain_27x6d500.h5 -k 27 -b 20 -e 500 -c 5 -v)
+
