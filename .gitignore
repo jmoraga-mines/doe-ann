@@ -11,6 +11,8 @@ simple_test.py
 *.png
 *.zip
 *.gr?
+*.hdr
+*.gri.aux.xml
 *.pickle
 *_samples_*/
 tmp/
