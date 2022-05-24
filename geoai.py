@@ -347,12 +347,19 @@ if __name__ == '__main__':
         # define the network's early stopping
         print("[INFO] define early stop and auto save for network...")
         auto_save = ModelCheckpoint(model_file, monitor = 'accuracy', verbose = 0, # vas 'val_accuracy'
-                                    save_best_only = True, save_weights_only=True,
-                                    mode='auto', save_freq=100)
+                                    save_best_only = True, save_weights_only=False,
+                                    mode='auto', save_freq=200)
         # can use validation set loss or accuracy to stop early
         # early_stop = EarlyStopping( monitor = 'val_accuracy', mode='max', baseline=0.97)
         # patience was 50
-        early_stop = EarlyStopping( monitor = 'val_loss', mode='min', verbose=1, patience=10)
+        early_stop = EarlyStopping( monitor = 'val_loss',
+                                min_delta=0.001,
+                                mode='auto',
+                                verbose=1, patience=5)
+        early_stop = EarlyStopping( monitor = 'val_accuracy',
+                                min_delta=0.001,
+                                mode='auto',
+                                verbose=1, patience=5)
         # train the network
         print("[INFO] training network...")
         # Train the model
