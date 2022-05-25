@@ -151,12 +151,8 @@ if __name__ == '__main__':
     ''' Main instructions '''
     print('Parsing input...')
     ap = argparse.ArgumentParser()
-    ap.add_argument("-b", "--batch_size", required=False,
-                    help="Defines batch size", default = BS, type=int)
     ap.add_argument("-c", "--channels", required=False, help='Number of channels in each image',
                     default=CHANNELS, type=int)
-    ap.add_argument("-e", "--epochs", required=False, type=int,
-                    help="Number of epochs to train)", default=EPOCHS)
     ap.add_argument("-g", "--gpus", required=False, type=int,
                     help="Number of GPUs to run in parallel", default=1)
     ap.add_argument("-i", "--image", required=True,
@@ -172,10 +168,11 @@ if __name__ == '__main__':
                     help="path to output prediction map (ending in .npy)")
     ap.add_argument("-o", "--output_raster", required=False, type=str, help="Raster file ending in .grd",
                     default = "prediction_raster.grd")
+    ap.add_argument("-r", "--response", required=False,
+                    help="Maps probabilities instead of categories",
+                    dest='response', action = 'store_true', default = False)
     args = vars(ap.parse_args())
-    batch_size = args["batch_size"]
     num_channels = args["channels"]
-    num_epochs = args["epochs"]
     num_gpus = args["gpus"]
     image_name = args["image"]
     kernel_size = args["kernel_size"]
@@ -184,6 +181,7 @@ if __name__ == '__main__':
     num_classes = args["num_classes"]
     prediction_map = args["prediction_map"]
     output_raster = args["output_raster"]
+    response_flag = args["response"]
     # Ensures model file exists and is really a file
     PADDING = int(kernel_size/2)
     try:
@@ -216,7 +214,7 @@ if __name__ == '__main__':
     mask_b = img_b[:, :, 0] # first band is Ground Truth
     (img_x, img_y) = mask_b.shape
     print("Mask shape:", mask_b.shape)
-    new_map = np.zeros_like(mask_b) # creates empty map
+    new_map = np.zeros_like(mask_b, dtype=np.float64) # creates empty map
     print("Map shape:", new_map.shape)
     for i in range(0, img_b_scaled.shape[2]):
         print("band (",i,") min:", img_b_scaled[:,:,i].min())
@@ -227,7 +225,10 @@ if __name__ == '__main__':
     IMAGE_DIMS = (kernel_size, kernel_size, num_channels)
     BATCH_DIMS = (None, kernel_size, kernel_size, num_channels)
     ### Check whether multi-gpu option was enabled
-    print('[INFO] Creating prediction map...')
+    if (response_flag):
+        print('[INFO] Creating response map...')
+    else:
+        print('[INFO] Creating category prediction map...')
     for i in tqdm(range(img_x), desc="Predicting...",
                   ascii=False, ncols=75):
         # initialize the data and labels
@@ -241,7 +242,10 @@ if __name__ == '__main__':
         data = np.array(data, dtype=np.float64)
         data = np.nan_to_num(data)
         pre_y = model3.predict( data, verbose = 0 )
-        pre_y = pre_y.argmax(axis=-1)
+        if (response_flag):
+          pre_y = pre_y[:,1]
+        else:
+          pre_y = pre_y.argmax(axis=-1)
         new_map[i,:] = pre_y
     new_map = np.asarray(new_map)
     print('saving file:', prediction_map)
@@ -253,7 +257,10 @@ if __name__ == '__main__':
     cols = inDs.RasterXSize
     cropData = band1.ReadAsArray(0,0,cols,rows)
     driver = inDs.GetDriver()
-    outDs = driver.Create(output_raster, cols, rows, 1, GDT_Int32)
+    if (response_flag):
+        outDs = driver.Create(output_raster, cols, rows, 1, GDT_Float64)
+    else:
+        outDs = driver.Create(output_raster, cols, rows, 1, GDT_Int32)
     outBand = outDs.GetRasterBand(1)
     outData = new_map.T
     outBand.WriteArray(outData, 0, 0)
