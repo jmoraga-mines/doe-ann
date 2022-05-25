@@ -174,7 +174,7 @@ if __name__ == '__main__':
                     dest='reset', action = 'store_true', default = False)
     ap.add_argument("-o", "--output_curves", required=False, help="Starting file name for ROC curves",
                     default = None)
-    ap.add_argument("-s", "--num_samples", required=False, help='Number of samples to use',
+    ap.add_argument("-s", "--num_samples", required=False, help='Number of samples to use. It correspond to number of each class if balanced, or total if unbalanced (see --unbalanced)',
                     default=100, type=int)
     ap.add_argument("-t", "--true_random", required=False,
                     help="Ensure true random shuffling of training and test sets",
@@ -184,6 +184,9 @@ if __name__ == '__main__':
                     dest='validate', action = 'store_true', default = False)
     ap.add_argument("-w", "--weights", required=False, help="path to input or output model weights",
                     default = None)
+    ap.add_argument("-z", "--unbalanced", required=False,
+                    help="Don't balance images for each class in the dataset used for training",
+                    dest='unbalanced', action = 'store_true', default = False)
     args = vars(ap.parse_args())
     print(args)
     augment_data = args["augment"]
@@ -203,6 +206,7 @@ if __name__ == '__main__':
     true_random = args["true_random"]
     validate_only = args["validate"]
     weights_file = args["weights"]
+    balanced_images = not (args["unbalanced"])
     output_curves_file = args["output_curves"]
     if reset_model:
         print("[INFO] Reset model")
@@ -248,6 +252,7 @@ if __name__ == '__main__':
                        num_channels=image_channels,
                        kernel_size=kernel_pixels,
                        sample=num_samples,
+                       balanced=balanced_images,
                        random_state=random_state,
                        verbose=2)
     cv = rSpCV.SpatialCV()
@@ -356,7 +361,7 @@ if __name__ == '__main__':
                                 min_delta=0.001,
                                 mode='auto',
                                 verbose=1, patience=5)
-        early_stop = EarlyStopping( monitor = 'val_accuracy',
+        early_stop2 = EarlyStopping( monitor = 'val_accuracy',
                                 min_delta=0.001,
                                 mode='auto',
                                 verbose=1, patience=5)

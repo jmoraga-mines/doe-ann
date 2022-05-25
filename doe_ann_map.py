@@ -7,8 +7,7 @@
   regions based on geothermal potential.
 
 
-  @authors: Jim Moraga <jmoraga@mines.edu>
-  @authors: Ebubekir Demir <edemir@mines.edu>
+  @author: Jim Moraga <jmoraga@mines.edu>
 """
 
 

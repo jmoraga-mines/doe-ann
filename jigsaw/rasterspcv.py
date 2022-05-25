@@ -101,6 +101,7 @@ class RasterSpCV(BaseCrossValidator, list, ABC):
                  partitions = 5,
                  augment = False,
                  sample = None, 
+                 balanced = True, 
                  random_state = None):
         if(isinstance(base_image, str)):
             try:
@@ -116,6 +117,7 @@ class RasterSpCV(BaseCrossValidator, list, ABC):
         assert ((isinstance(sample, type(None))) or (isinstance(sample, int))), f"Wrong type, received {type(sample)}"
         assert ((kernel_size>0) and ((kernel_size%2)==1))
         self.augment = augment
+        self.balanced = balanced
         self.kernel_size = kernel_size
         self.verbose = verbose
         xmin, ymax = np.around(base_image.xy(0.00, 0.00), 8)  # millimeter accuracy for longitude
@@ -145,12 +147,17 @@ class RasterSpCV(BaseCrossValidator, list, ABC):
         df = pd.DataFrame(data=data)
         df = df.dropna()
         if(not isinstance(sample, type(None))):
-            df_0 = df[df.z==0]
-            df_1 = df[df.z==1]
-            df_0=df_0.sample(n = sample, random_state=random_state)
-            df_1=df_1.sample(n = sample)
-            df = pd.concat([df_0,df_1], sort=False)
-            # df=df.sample(n = sample, random_state=random_state)
+            if (balanced):
+                df_0 = df[df.z==0]
+                print(f"Samples with value 0: {len(df_0)}")
+                df_1 = df[df.z==1]
+                print(f"Samples with value 1: {len(df_1)}")
+                df_0=df_0.sample(n = sample, random_state=random_state)
+                df_1=df_1.sample(n = sample)
+                df = pd.concat([df_0,df_1], sort=False)
+            else:
+                print(f"Total samples: {len(df)}")
+                df=df.sample(n = sample, random_state=random_state)
         if(verbose>1):
             print("Transforming coordinates to (x, y)")
         geometry = gpd.points_from_xy(df.x, df.y)
