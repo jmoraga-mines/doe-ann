@@ -1,4 +1,6 @@
 #!/bin/env bash
+# @author: jmoraga@mines.edu
+# (c) 2021, 2022 Jaime Moraga
 #SBATCH --job-name=paper_brady_27x7_13        # Job name
 ##SBATCH --mail-type=END,FAIL          # Mail events (NONE, BEGIN, END, FAIL, ALL)
 ##SBATCH --mail-user=jmoraga@mines.edu # Where to send mail      
@@ -21,13 +23,14 @@ echo `hostname`; date
 echo "Current shell:"
 ps -p $$
 module purge
-#module load anaconda
-module load libs/cuda
-#module load cudnn
-#source /curc/sw/anaconda3/latest
-#cd /projects/edemir@xsede.org/doe-ann
 if [ "$(whoami)" == "jmoraga" ]; then
+ module load libs/cuda
  cd /u/mx/fo/jmoraga/subt/doe-ann
+elif [ "$(whoami)" == "edemir" ]; then
+ module load anaconda
+ module load cudnn
+ source /curc/sw/anaconda3/latest
+ cd /projects/edemir@xsede.org/doe-ann
 fi
 conda init bash
 conda activate tf_38
